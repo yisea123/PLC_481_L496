@@ -36,6 +36,8 @@ plc_481_l496\main.o: ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_pwr.h
 plc_481_l496\main.o: ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_pwr_ex.h
 plc_481_l496\main.o: ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_spi.h
 plc_481_l496\main.o: ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_spi_ex.h
+plc_481_l496\main.o: ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_tim.h
+plc_481_l496\main.o: ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_tim_ex.h
 plc_481_l496\main.o: ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_uart.h
 plc_481_l496\main.o: ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_uart_ex.h
 plc_481_l496\main.o: ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS/cmsis_os.h
@@ -55,6 +57,8 @@ plc_481_l496\main.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/semphr.h
 plc_481_l496\main.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/event_groups.h
 plc_481_l496\main.o: ../Inc/adc.h
 plc_481_l496\main.o: ../Inc/dac.h
+plc_481_l496\main.o: ../Inc/dma.h
 plc_481_l496\main.o: ../Inc/spi.h
+plc_481_l496\main.o: ../Inc/tim.h
 plc_481_l496\main.o: ../Inc/usart.h
 plc_481_l496\main.o: ../Inc/gpio.h

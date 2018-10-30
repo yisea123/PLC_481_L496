@@ -71,6 +71,10 @@
 #define D_C_GPIO_Port GPIOC
 #define SW_Pin GPIO_PIN_7
 #define SW_GPIO_Port GPIOC
+#define SD1_Pin GPIO_PIN_8
+#define SD1_GPIO_Port GPIOC
+#define SD2_Pin GPIO_PIN_9
+#define SD2_GPIO_Port GPIOC
 #define K4_Pin GPIO_PIN_11
 #define K4_GPIO_Port GPIOA
 #define RES_Pin GPIO_PIN_11
