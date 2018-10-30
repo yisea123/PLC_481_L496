@@ -1,0 +1,15 @@
+plc_481_l496\croutine.o: ../Middlewares/Third_Party/FreeRTOS/Source/croutine.c
+plc_481_l496\croutine.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h
+plc_481_l496\croutine.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stddef.h
+plc_481_l496\croutine.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdint.h
+plc_481_l496\croutine.o: ../Inc/FreeRTOSConfig.h
+plc_481_l496\croutine.o: ../Inc/main.h
+plc_481_l496\croutine.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/projdefs.h
+plc_481_l496\croutine.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/portable.h
+plc_481_l496\croutine.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/deprecated_definitions.h
+plc_481_l496\croutine.o: ../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM4F/portmacro.h
+plc_481_l496\croutine.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/mpu_wrappers.h
+plc_481_l496\croutine.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/task.h
+plc_481_l496\croutine.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/list.h
+plc_481_l496\croutine.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/croutine.h
+plc_481_l496\croutine.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/list.h
