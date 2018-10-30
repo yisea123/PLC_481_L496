@@ -4,6 +4,14 @@ plc_481_l496\freertos.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stddef.h
 plc_481_l496\freertos.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdint.h
 plc_481_l496\freertos.o: ../Inc/FreeRTOSConfig.h
 plc_481_l496\freertos.o: ../Inc/main.h
+plc_481_l496\freertos.o: ../Drivers/CMSIS/Include/arm_math.h
+plc_481_l496\freertos.o: ../Drivers/CMSIS/Include/core_cm4.h
+plc_481_l496\freertos.o: ../Drivers/CMSIS/Include/core_cmInstr.h
+plc_481_l496\freertos.o: ../Drivers/CMSIS/Include/cmsis_armcc.h
+plc_481_l496\freertos.o: ../Drivers/CMSIS/Include/core_cmFunc.h
+plc_481_l496\freertos.o: ../Drivers/CMSIS/Include/core_cmSimd.h
+plc_481_l496\freertos.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\string.h
+plc_481_l496\freertos.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\math.h
 plc_481_l496\freertos.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/projdefs.h
 plc_481_l496\freertos.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/portable.h
 plc_481_l496\freertos.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/deprecated_definitions.h
@@ -24,10 +32,6 @@ plc_481_l496\freertos.o: ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_def.h
 plc_481_l496\freertos.o: ../Drivers/CMSIS/Device/ST/STM32L4xx/Include/stm32l4xx.h
 plc_481_l496\freertos.o: ../Drivers/CMSIS/Device/ST/STM32L4xx/Include/stm32l496xx.h
 plc_481_l496\freertos.o: ../Drivers/CMSIS/Include/core_cm4.h
-plc_481_l496\freertos.o: ../Drivers/CMSIS/Include/core_cmInstr.h
-plc_481_l496\freertos.o: ../Drivers/CMSIS/Include/cmsis_armcc.h
-plc_481_l496\freertos.o: ../Drivers/CMSIS/Include/core_cmFunc.h
-plc_481_l496\freertos.o: ../Drivers/CMSIS/Include/core_cmSimd.h
 plc_481_l496\freertos.o: ../Drivers/CMSIS/Device/ST/STM32L4xx/Include/system_stm32l4xx.h
 plc_481_l496\freertos.o: ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal.h
 plc_481_l496\freertos.o: ../Drivers/STM32L4xx_HAL_Driver/Inc/Legacy/stm32_hal_legacy.h
@@ -56,3 +60,9 @@ plc_481_l496\freertos.o: ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_tim.h
 plc_481_l496\freertos.o: ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_tim_ex.h
 plc_481_l496\freertos.o: ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_uart.h
 plc_481_l496\freertos.o: ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_uart_ex.h
+plc_481_l496\freertos.o: ../Inc/adc.h
+plc_481_l496\freertos.o: ../Inc/usart.h
+plc_481_l496\freertos.o: ../Inc/dac.h
+plc_481_l496\freertos.o: ..\Src\display\fonts.h
+plc_481_l496\freertos.o: ..\Src\display\ssd1306.h
+plc_481_l496\freertos.o: ..\Src\display\fonts.h

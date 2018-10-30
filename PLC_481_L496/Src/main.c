@@ -66,7 +66,133 @@
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
+extern uint16_t raw_adc_value[ADC_BUFFER_SIZE];
 
+volatile uint64_t cpu_load2 = 0;
+volatile uint32_t count_idle;
+volatile uint32_t value = 0;
+volatile uint32_t freeHeapSize = 0;
+volatile uint32_t timer_100ms = 0;
+
+extern volatile uint64_t xTimeBefore, xTotalTimeSuspended;
+
+volatile uint32_t temp1 = 0;
+volatile uint32_t temp2 = 0;
+volatile uint32_t temp3 = 0;
+volatile uint32_t temp4 = 0;
+
+extern uint8_t queue_count;
+extern float32_t qrms;
+extern float32_t qrms_array[8];	
+
+extern xQueueHandle queue;
+
+extern xSemaphoreHandle Semaphore1, Semaphore2, Semaphore3, Semaphore4;
+
+uint8_t status_flash_reg = 0;
+extern uint16_t settings[REG_COUNT];
+extern uint16_t default_settings[REG_COUNT];
+
+extern DMA_HandleTypeDef hdma_adc1;
+
+void convert_float_and_swap(float32_t float_in, uint16_t* int_out);
+void convert_double_and_swap(float64_t double_in, uint16_t* int_out);
+
+extern float32_t break_level_icp;
+extern uint16_t slave_adr_mb_master;
+extern uint16_t slave_func_mb_master;
+extern uint16_t slave_reg_mb_master;
+extern uint16_t mb_master_timeout;
+extern uint16_t quantity_reg_mb_master;
+extern uint16_t coef_A_mb_master;
+
+extern float32_t lo_warning_icp;
+extern float32_t hi_warning_icp;
+extern float32_t lo_emerg_icp;
+extern float32_t hi_emerg_icp;
+extern float32_t icp_coef_K;
+extern float32_t icp_coef_B;
+extern float32_t range_icp;
+extern uint8_t filter_mode_icp;
+
+
+extern float32_t lo_warning_420;
+extern float32_t hi_warning_420;
+extern float32_t lo_emerg_420;
+extern float32_t hi_emerg_420;
+extern float32_t coef_ampl_420;
+extern float32_t coef_offset_420;
+extern float32_t up_user_range_4_20;
+extern float32_t down_user_range_4_20;
+extern float32_t out_4_20_coef_K;	
+extern float32_t out_4_20_coef_B;	
+
+extern float32_t lo_warning_485;
+extern float32_t hi_warning_485;
+extern float32_t lo_emerg_485;
+extern float32_t hi_emerg_485;
+
+extern uint16_t mode_relay;
+extern uint8_t source_signal_relay;
+extern uint16_t delay_relay;
+extern uint16_t delay_relay_exit;
+
+extern uint16_t slave_adr;
+extern uint16_t warming_up;
+extern float32_t power_supply_warning_lo;
+extern float32_t power_supply_warning_hi;
+
+extern float32_t baud_rate_uart_2;
+extern float32_t baud_rate_uart_3;
+uint32_t boot_timer_counter;	
+extern uint8_t bootloader_state;
+extern uint8_t receiveBuffer[16];
+
+extern uint16_t channel_ICP_ON;
+extern uint16_t channel_4_20_ON;
+extern uint16_t channel_485_ON;
+
+volatile uint16_t timer_485_counter = 0;
+extern uint8_t break_sensor_485;
+
+extern uint8_t hart_switch_on;
+extern uint16_t hart_slave_address;
+extern uint16_t hart_slave_numreg;
+extern uint8_t hart_func;
+extern uint16_t hart_regs_qty;
+extern uint16_t hart_timeout_transmit;
+extern uint16_t hart_time_poll;
+
+extern uint16_t icp_menu_points_for_showing;
+extern uint16_t menu_485_points_for_showing;
+
+extern uint16_t hysteresis_TOC;
+extern uint16_t impulse_sign;
+
+extern uint8_t flag_delay_relay_1_4_20;
+extern uint8_t relay_permission_1_4_20;
+extern uint8_t flag_delay_relay_2_4_20;
+extern uint8_t relay_permission_2_4_20;
+extern uint16_t timer_delay_relay_1_4_20;
+extern uint16_t timer_delay_relay_2_4_20;
+
+extern uint8_t flag_delay_relay_1_icp;
+extern uint8_t relay_permission_1_icp;
+extern uint16_t timer_delay_relay_1_icp;
+extern uint8_t flag_delay_relay_2_icp;
+extern uint8_t relay_permission_2_icp;
+extern uint16_t timer_delay_relay_2_icp;
+
+extern struct mb_master_delay_relay master_delay_relay_array[REG_485_QTY];
+
+extern uint8_t quit_relay_button;
+uint8_t quit_timer = 0;
+
+extern uint8_t adc_bunch; 
+extern uint16_t bunch_count_1;		
+extern uint16_t bunch_count_2;		
+
+extern xSemaphoreHandle Semaphore_Acceleration;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -237,6 +363,130 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+
+void convert_float_and_swap(float32_t float_in, uint16_t* int_out)
+{	
+	uint16_t temp = 0;
+	
+	memcpy(int_out, &float_in, sizeof(float32_t));
+
+	temp = int_out[0];
+	int_out[0] = int_out[1];	
+	int_out[1] = temp;	
+}	
+
+void convert_to_swFloat(float32_t float_in, uint16_t* int_out)
+{	
+	uint16_t temp = 0;
+	
+	memcpy(int_out, &float_in, sizeof(float32_t));
+
+	//temp = int_out[0];
+	
+//	int_out[0] = temp;	
+//	int_out[1] = int_out[1];
+}	
+
+void convert_double_and_swap(float64_t double_in, uint16_t* int_out)
+{	
+	uint16_t temp1 = 0;
+	uint16_t temp2 = 0;
+	
+	memcpy(int_out, &double_in, sizeof(float64_t));
+
+	temp1 = int_out[2];
+	int_out[0] = int_out[3];	
+	int_out[1] = temp1;		
+	
+	temp2 = int_out[0];
+	int_out[2] = int_out[1];	
+	int_out[3] = temp2;	
+}	
+
+float32_t convert_hex_to_float(uint16_t* in, uint8_t index)
+{	
+	float32_t out = 0.0;
+	
+	uint32_t tmp = (in[index] << 16) + in[index+1];	
+	memcpy(&out, &tmp, sizeof out);	
+	
+	return out;
+}
+
+
+void read_init_settings(void)
+{
+	
+	//„тение настроек
+	status_flash_reg = read_registers_from_flash(&settings[0]);
+	
+//	//«агружаем "по-умолчанию" если не прочитали 
+//	if (status_flash_reg != 0)
+//	{
+//		for(int i=0; i< REG_COUNT; i++)
+//			settings[i] = default_settings[i];			
+//	}	
+	
+	
+	baud_rate_uart_2 = convert_hex_to_float(&settings[0], 101);
+	baud_rate_uart_3 = convert_hex_to_float(&settings[0], 65);
+	
+	
+	//ѕреобразовываем значени€ из хранилища настроек в уставки/параметры (номер регистра из regmap - 1):			
+	lo_warning_icp = convert_hex_to_float(&settings[0], 2); 	
+	hi_warning_icp = convert_hex_to_float(&settings[0], 4); 
+	lo_emerg_icp = convert_hex_to_float(&settings[0], 6); 
+	hi_emerg_icp = convert_hex_to_float(&settings[0], 8); 
+	break_level_icp = convert_hex_to_float(&settings[0], 11); 	
+	icp_coef_K = convert_hex_to_float(&settings[0], 15); 
+	icp_coef_B = convert_hex_to_float(&settings[0], 17); 
+	filter_mode_icp = settings[19];
+	range_icp = convert_hex_to_float(&settings[0], 20); 	
+	icp_menu_points_for_showing = settings[29]; 	
+
+	
+	lo_warning_420 = convert_hex_to_float(&settings[0], 38); 	
+	hi_warning_420 = convert_hex_to_float(&settings[0], 40); 	
+	lo_emerg_420 = convert_hex_to_float(&settings[0], 42); 	
+	hi_emerg_420 = convert_hex_to_float(&settings[0], 44); 			
+	down_user_range_4_20 = convert_hex_to_float(&settings[0], 47); 		
+	up_user_range_4_20 = convert_hex_to_float(&settings[0], 49); 			
+	coef_ampl_420 = convert_hex_to_float(&settings[0], 51); 	
+	coef_offset_420 = convert_hex_to_float(&settings[0], 53); 	
+	
+	
+	menu_485_points_for_showing = settings[64];	
+	mb_master_timeout = settings[67];		
+	
+	
+	mode_relay = settings[84];
+	delay_relay = settings[86];	
+	delay_relay_exit = settings[88];	
+	
+	out_4_20_coef_K = convert_hex_to_float(&settings[0], 90); 
+	out_4_20_coef_B = convert_hex_to_float(&settings[0], 92); 
+	
+	slave_adr = settings[100];	
+	warming_up = settings[109];
+
+	power_supply_warning_lo = convert_hex_to_float(&settings[0], 110);
+	power_supply_warning_hi = convert_hex_to_float(&settings[0], 112);
+		
+	channel_ICP_ON = settings[28];	
+	channel_4_20_ON = settings[57];
+	channel_485_ON = settings[72];
+		
+	hart_switch_on = settings[114];	
+	hart_slave_address = settings[115];	
+	hart_func = settings[116];	
+	hart_slave_numreg = settings[117];	
+	hart_regs_qty = settings[118];		
+	hart_timeout_transmit = settings[119];	
+		
+	impulse_sign = settings[135];
+	hysteresis_TOC = settings[138];
+	
+}
 
 /* USER CODE END 4 */
 
