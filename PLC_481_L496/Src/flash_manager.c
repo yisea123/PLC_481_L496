@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include "stm32l4xx_hal.h"
 #include "stm32l4xx_hal_flash.h"
-#include "Flash_manager.h"
+#include "flash_manager.h"
 #include "cmsis_os.h"
 
 extern uint16_t default_settings[REG_COUNT];

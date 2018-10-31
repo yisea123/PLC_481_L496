@@ -38,13 +38,15 @@ plc_481_l496\flash_manager.o: ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_
 plc_481_l496\flash_manager.o: ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_i2c_ex.h
 plc_481_l496\flash_manager.o: ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_pwr.h
 plc_481_l496\flash_manager.o: ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_pwr_ex.h
+plc_481_l496\flash_manager.o: ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_rtc.h
+plc_481_l496\flash_manager.o: ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_rtc_ex.h
 plc_481_l496\flash_manager.o: ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_spi.h
 plc_481_l496\flash_manager.o: ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_spi_ex.h
 plc_481_l496\flash_manager.o: ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_tim.h
 plc_481_l496\flash_manager.o: ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_tim_ex.h
 plc_481_l496\flash_manager.o: ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_uart.h
 plc_481_l496\flash_manager.o: ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_uart_ex.h
-plc_481_l496\flash_manager.o: ..\Src\Flash_manager.h
+plc_481_l496\flash_manager.o: ..\Src\flash_manager.h
 plc_481_l496\flash_manager.o: ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS/cmsis_os.h
 plc_481_l496\flash_manager.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h
 plc_481_l496\flash_manager.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stddef.h

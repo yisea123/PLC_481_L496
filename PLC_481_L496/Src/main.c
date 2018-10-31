@@ -250,6 +250,34 @@ int main(void)
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
 
+	//Читаем параметры и уставки из flash
+	read_init_settings();
+
+	//Инициализация фильтров
+	FilterInit();
+
+	HAL_TIM_Base_Start_IT(&htim6);
+	HAL_TIM_Base_Start_IT(&htim7);
+	
+	HAL_ADC_Start_DMA(&hadc1, (uint32_t*) &raw_adc_value, RAW_ADC_BUFFER_SIZE);
+	//__HAL_DMA_DISABLE_IT(&hdma_adc1, DMA_IT_HT); /* Disable the half transfer interrupt */
+	
+	HAL_DAC_Start(&hdac1,DAC_CHANNEL_1);
+	
+	__HAL_UART_ENABLE_IT(&huart1, UART_IT_RXNE);	
+	__HAL_UART_ENABLE_IT(&huart2, UART_IT_RXNE);
+	__HAL_UART_ENABLE_IT(&huart3, UART_IT_RXNE);
+	
+	//Проверка частоты тактирования (на PA8)
+	//HAL_RCC_MCOConfig(RCC_MCO, RCC_MCO1SOURCE_SYSCLK, RCC_MCODIV_1);
+
+	//Set RTS (HART Rx)
+	//HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12, GPIO_PIN_SET);
+	
+	/* Enable the UART Transmit Complete Interrupt */ 
+	__HAL_UART_ENABLE_IT(&huart1, UART_IT_TC);	
+	
+		
   /* USER CODE END 2 */
 
   /* Call init function for freertos objects (in freertos.c) */
@@ -488,6 +516,57 @@ void read_init_settings(void)
 	
 }
 
+void vApplicationIdleHook( void )
+{
+
+	count_idle++;	
+	freeHeapSize = xPortGetFreeHeapSize();	
+	//HAL_IWDG_Refresh(&hiwdg);
+}
+
+void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef* hadc)
+{
+	
+		adc_bunch = 1;	
+	
+		//HAL_ADC_Stop_DMA(&hadc1);
+		
+		if( Semaphore_Acceleration != NULL )
+		{
+						static signed portBASE_TYPE xHigherPriorityTaskWoken;
+						xHigherPriorityTaskWoken = pdFALSE;	
+						xSemaphoreGiveFromISR(Semaphore_Acceleration, &xHigherPriorityTaskWoken);
+						if( xHigherPriorityTaskWoken == pdTRUE )
+						{
+								portEND_SWITCHING_ISR(xHigherPriorityTaskWoken);
+						}			
+						
+		}
+		
+		//conv_complete_1++;
+};
+
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
+{
+			adc_bunch = 2; 
+			
+			//HAL_ADC_Stop_DMA(&hadc1);
+					
+			if( Semaphore_Acceleration != NULL )
+			{
+							static signed portBASE_TYPE xHigherPriorityTaskWoken;
+							xHigherPriorityTaskWoken = pdFALSE;	
+							xSemaphoreGiveFromISR(Semaphore_Acceleration, &xHigherPriorityTaskWoken);
+							if( xHigherPriorityTaskWoken == pdTRUE )
+							{
+									portEND_SWITCHING_ISR(xHigherPriorityTaskWoken);
+							}			
+							
+			}	
+			
+		 //conv_complete_2++;
+};
+
 /* USER CODE END 4 */
 
 /**
@@ -507,7 +586,126 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     HAL_IncTick();
   }
   /* USER CODE BEGIN Callback 1 */
+	if (htim->Instance == TIM7) 
+	{		
+		
+		temp2++;		
+		
+		if (temp2 >= 10) //1 сек.
+		{
+				temp1 = count_idle; 
+				count_idle = 0;
+				temp2 = 0;		
+				
+				//Таймер для режима обновления загрузчика
+				if (bootloader_state == 1)
+				{
+					if (boot_timer_counter > 10) 
+					{
+						bootloader_state = 0;	
+											
+						receiveBuffer[1] = 0x00;
+					}
+					else boot_timer_counter++;
+				}
+				else
+				{
+					boot_timer_counter = 0;
+				}
+				
+				//Таймер для Modbus Master
+				timer_485_counter ++;
+				if (timer_485_counter > TIME_BREAK_SENSOR_485)
+				{
+					break_sensor_485 = 1;
+				}
+				
+				
+				
+				//Таймер для задержки на срабатывание реле 1 (канал 4-20)
+				if (flag_delay_relay_1_4_20 == 1)
+				{						
+					if (timer_delay_relay_1_4_20 == delay_relay)
+					{
+						relay_permission_1_4_20 = 1;
+						timer_delay_relay_1_4_20 = 0;						
+					}
+					else timer_delay_relay_1_4_20++;										
+				}			
+				
+				//Таймер для задержки на срабатывание реле 2 (канал 4-20)
+				if (flag_delay_relay_2_4_20 == 1)
+				{						
+					if (timer_delay_relay_2_4_20 == delay_relay)
+					{
+						relay_permission_2_4_20 = 1;
+						timer_delay_relay_2_4_20 = 0;						
+					}
+					else timer_delay_relay_2_4_20++;										
+				}
+				
+				//Таймер для задержки на срабатывание реле 1 (канал icp)
+				if (flag_delay_relay_1_icp == 1)
+				{						
+					if (timer_delay_relay_1_icp == delay_relay)
+					{
+						relay_permission_1_icp = 1;
+						timer_delay_relay_1_icp = 0;						
+					}
+					else timer_delay_relay_1_icp++;										
+				}			
+				
+				//Таймер для задержки на срабатывание реле 2 (канал icp)
+				if (flag_delay_relay_2_icp == 1)
+				{						
+					if (timer_delay_relay_2_icp == delay_relay)
+					{
+						relay_permission_2_icp = 1;
+						timer_delay_relay_2_icp = 0;						
+					}
+					else timer_delay_relay_2_icp++;										
+				}				
 
+				//Таймер для задержки на срабатывание реле (канал 485)
+				for (uint8_t i = 0; i < REG_485_QTY; i++)
+				{						
+						if (master_delay_relay_array[i].flag_delay_relay_1 == 1)
+						{						
+							if (master_delay_relay_array[i].timer_delay_relay_1 == delay_relay)
+							{
+								master_delay_relay_array[i].relay_permission_1 = 1;
+								master_delay_relay_array[i].timer_delay_relay_1 = 0;						
+							}
+							else master_delay_relay_array[i].timer_delay_relay_1++;										
+						}			
+						
+						
+						if (master_delay_relay_array[i].flag_delay_relay_2 == 1)
+						{						
+							if (master_delay_relay_array[i].timer_delay_relay_2 == delay_relay)
+							{
+								master_delay_relay_array[i].relay_permission_2 = 1;
+								master_delay_relay_array[i].timer_delay_relay_2 = 0;						
+							}
+							else master_delay_relay_array[i].timer_delay_relay_2++;										
+						}					
+				}
+				
+				if (quit_relay_button == 1)
+				{
+					if (quit_timer == QUIT_TIMER) 
+					{
+						quit_relay_button = 0;
+						quit_timer = 0;
+					}
+					else quit_timer++;
+				}
+				
+		}	
+	
+		//cpu_load = 100 - (100 * temp1 / 1350);
+		cpu_load2 = 100 - (100 * temp1 / 1351854);
+  }
   /* USER CODE END Callback 1 */
 }
 
