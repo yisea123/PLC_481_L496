@@ -1,3 +1,4 @@
+/* USER CODE BEGIN Header */
 /**
   ******************************************************************************
   * File Name          : freertos.c
@@ -45,12 +46,15 @@
   *
   ******************************************************************************
   */
+/* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
 #include "FreeRTOS.h"
 #include "task.h"
+#include "main.h"
 #include "cmsis_os.h"
 
+/* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */     
 #include "gpio.h"
 #include "arm_math.h"
@@ -70,30 +74,22 @@
 #include <string.h>
 /* USER CODE END Includes */
 
-/* Variables -----------------------------------------------------------------*/
-osThreadId defaultTaskHandle;
-osThreadId myTask02Handle;
-osThreadId myTask03Handle;
-osThreadId myTask04Handle;
-osThreadId myTask05Handle;
-osThreadId myTask06Handle;
-osThreadId myTask07Handle;
-osThreadId myTask08Handle;
-osThreadId myTask09Handle;
-osThreadId myTask10Handle;
-osThreadId myTask11Handle;
-osThreadId myTask12Handle;
-osThreadId myTask13Handle;
-osThreadId myTask14Handle;
-osThreadId myTask15Handle;
-osThreadId myTask16Handle;
-osThreadId myTask17Handle;
-osThreadId myTask18Handle;
-osThreadId myTask19Handle;
-osThreadId myTask20Handle;
-osThreadId myTask21Handle;
-osThreadId myTask22Handle;
+/* Private typedef -----------------------------------------------------------*/
+/* USER CODE BEGIN PTD */
 
+/* USER CODE END PTD */
+
+/* Private define ------------------------------------------------------------*/
+/* USER CODE BEGIN PD */
+
+/* USER CODE END PD */
+
+/* Private macro -------------------------------------------------------------*/
+/* USER CODE BEGIN PM */
+
+/* USER CODE END PM */
+
+/* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
 
 xSemaphoreHandle 	Semaphore1, Semaphore2,
@@ -448,8 +444,53 @@ volatile uint16_t bunch_count_2 = 0;
 
 
 /* USER CODE END Variables */
+osThreadId defaultTaskHandle;
+osThreadId myTask02Handle;
+osThreadId myTask03Handle;
+osThreadId myTask04Handle;
+osThreadId myTask05Handle;
+osThreadId myTask06Handle;
+osThreadId myTask07Handle;
+osThreadId myTask08Handle;
+osThreadId myTask09Handle;
+osThreadId myTask10Handle;
+osThreadId myTask11Handle;
+osThreadId myTask12Handle;
+osThreadId myTask13Handle;
+osThreadId myTask14Handle;
+osThreadId myTask15Handle;
+osThreadId myTask16Handle;
+osThreadId myTask17Handle;
+osThreadId myTask18Handle;
+osThreadId myTask19Handle;
+osThreadId myTask20Handle;
+osThreadId myTask21Handle;
+osThreadId myTask22Handle;
 
-/* Function prototypes -------------------------------------------------------*/
+/* Private function prototypes -----------------------------------------------*/
+/* USER CODE BEGIN FunctionPrototypes */
+void FilterInit(void);
+void Integrate_V(float32_t* input, float32_t* output, uint32_t size);
+void Integrate_D(float32_t* input, float32_t* output, uint32_t size);
+extern void write_flash(uint32_t page, uint32_t* data, uint32_t size);
+extern uint32_t read_flash(uint32_t addr);
+extern uint16_t crc16(uint8_t *adr_buffer, uint32_t byte_cnt);
+uint16_t crc_calculating(unsigned char* puchMsg, unsigned short usDataLen);
+extern DMA_HandleTypeDef hdma_usart2_rx;
+extern DMA_HandleTypeDef hdma_usart2_tx;
+uint32_t rtc_read_backup_reg(uint32_t BackupRegister);
+void rtc_write_backup_reg(uint32_t BackupRegister, uint32_t data);
+void string_scroll(char* msg, uint8_t len);
+void string_scroll_with_number(char* msg, uint8_t len, uint8_t number);
+void edit_mode(float32_t *var);
+void edit_mode_int(int16_t *var); 
+void edit_mode_int8(uint8_t *var); 
+void init_menu(uint8_t where_from);
+void save_settings(void);
+void edit_mode_from_list(float32_t *var, uint32_t* list);
+void turnover_counter(float32_t* input_array);
+/* USER CODE END FunctionPrototypes */
+
 void StartDefaultTask(void const * argument);
 void Acceleration_Task(void const * argument);
 void Velocity_Task(void const * argument);
@@ -474,29 +515,6 @@ void HART_Receive_Task(void const * argument);
 void HART_Transmit_Task(void const * argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
-
-/* USER CODE BEGIN FunctionPrototypes */
-void FilterInit(void);
-void Integrate_V(float32_t* input, float32_t* output, uint32_t size);
-void Integrate_D(float32_t* input, float32_t* output, uint32_t size);
-extern void write_flash(uint32_t page, uint32_t* data, uint32_t size);
-extern uint32_t read_flash(uint32_t addr);
-extern uint16_t crc16(uint8_t *adr_buffer, uint32_t byte_cnt);
-uint16_t crc_calculating(unsigned char* puchMsg, unsigned short usDataLen);
-extern DMA_HandleTypeDef hdma_usart2_rx;
-extern DMA_HandleTypeDef hdma_usart2_tx;
-uint32_t rtc_read_backup_reg(uint32_t BackupRegister);
-void rtc_write_backup_reg(uint32_t BackupRegister, uint32_t data);
-void string_scroll(char* msg, uint8_t len);
-void string_scroll_with_number(char* msg, uint8_t len, uint8_t number);
-void edit_mode(float32_t *var);
-void edit_mode_int(int16_t *var); 
-void edit_mode_int8(uint8_t *var); 
-void init_menu(uint8_t where_from);
-void save_settings(void);
-void edit_mode_from_list(float32_t *var, uint32_t* list);
-void turnover_counter(float32_t* input_array);
-/* USER CODE END FunctionPrototypes */
 
 /* Hook prototypes */
 void configureTimerForRunTimeStats(void);
@@ -541,8 +559,11 @@ __weak void vApplicationStackOverflowHook(xTaskHandle xTask, signed char *pcTask
 }
 /* USER CODE END 4 */
 
-/* Init FreeRTOS */
-
+/**
+  * @brief  FreeRTOS initialization
+  * @param  None
+  * @retval None
+  */
 void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
 	//Время усреднения выборки (4с.=64, 2с.=32, 1с.=16)
@@ -619,29 +640,29 @@ void MX_FREERTOS_Init(void) {
   osThreadDef(defaultTask, StartDefaultTask, osPriorityIdle, 0, 128);
   defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
 
-//  /* definition and creation of myTask02 */
-//  osThreadDef(myTask02, Acceleration_Task, osPriorityNormal, 0, 128);
-//  myTask02Handle = osThreadCreate(osThread(myTask02), NULL);
+  /* definition and creation of myTask02 */
+  osThreadDef(myTask02, Acceleration_Task, osPriorityNormal, 0, 128);
+  myTask02Handle = osThreadCreate(osThread(myTask02), NULL);
 
-//  /* definition and creation of myTask03 */
-//  osThreadDef(myTask03, Velocity_Task, osPriorityNormal, 0, 128);
-//  myTask03Handle = osThreadCreate(osThread(myTask03), NULL);
+  /* definition and creation of myTask03 */
+  osThreadDef(myTask03, Velocity_Task, osPriorityNormal, 0, 128);
+  myTask03Handle = osThreadCreate(osThread(myTask03), NULL);
 
-//  /* definition and creation of myTask04 */
-//  osThreadDef(myTask04, Displacement_Task, osPriorityNormal, 0, 128);
-//  myTask04Handle = osThreadCreate(osThread(myTask04), NULL);
+  /* definition and creation of myTask04 */
+  osThreadDef(myTask04, Displacement_Task, osPriorityNormal, 0, 128);
+  myTask04Handle = osThreadCreate(osThread(myTask04), NULL);
 
-//  /* definition and creation of myTask05 */
-//  osThreadDef(myTask05, Q_Average_A, osPriorityNormal, 0, 128);
-//  myTask05Handle = osThreadCreate(osThread(myTask05), NULL);
+  /* definition and creation of myTask05 */
+  osThreadDef(myTask05, Q_Average_A, osPriorityNormal, 0, 128);
+  myTask05Handle = osThreadCreate(osThread(myTask05), NULL);
 
-//  /* definition and creation of myTask06 */
-//  osThreadDef(myTask06, Q_Average_V, osPriorityNormal, 0, 128);
-//  myTask06Handle = osThreadCreate(osThread(myTask06), NULL);
+  /* definition and creation of myTask06 */
+  osThreadDef(myTask06, Q_Average_V, osPriorityNormal, 0, 128);
+  myTask06Handle = osThreadCreate(osThread(myTask06), NULL);
 
-//  /* definition and creation of myTask07 */
-//  osThreadDef(myTask07, Q_Average_D, osPriorityNormal, 0, 128);
-//  myTask07Handle = osThreadCreate(osThread(myTask07), NULL);
+  /* definition and creation of myTask07 */
+  osThreadDef(myTask07, Q_Average_D, osPriorityNormal, 0, 128);
+  myTask07Handle = osThreadCreate(osThread(myTask07), NULL);
 
   /* definition and creation of myTask08 */
   osThreadDef(myTask08, ADC_supply_voltage, osPriorityNormal, 0, 128);
@@ -663,21 +684,21 @@ void MX_FREERTOS_Init(void) {
   osThreadDef(myTask12, Button_Task, osPriorityNormal, 0, 128);
   myTask12Handle = osThreadCreate(osThread(myTask12), NULL);
 
-//  /* definition and creation of myTask13 */
-//  osThreadDef(myTask13, Modbus_Receive_Task, osPriorityNormal, 0, 128);
-//  myTask13Handle = osThreadCreate(osThread(myTask13), NULL);
+  /* definition and creation of myTask13 */
+  osThreadDef(myTask13, Modbus_Receive_Task, osPriorityNormal, 0, 128);
+  myTask13Handle = osThreadCreate(osThread(myTask13), NULL);
 
-//  /* definition and creation of myTask14 */
-//  osThreadDef(myTask14, Modbus_Transmit_Task, osPriorityNormal, 0, 128);
-//  myTask14Handle = osThreadCreate(osThread(myTask14), NULL);
+  /* definition and creation of myTask14 */
+  osThreadDef(myTask14, Modbus_Transmit_Task, osPriorityNormal, 0, 128);
+  myTask14Handle = osThreadCreate(osThread(myTask14), NULL);
 
-//  /* definition and creation of myTask15 */
-//  osThreadDef(myTask15, Master_Modbus_Receive, osPriorityNormal, 0, 128);
-//  myTask15Handle = osThreadCreate(osThread(myTask15), NULL);
+  /* definition and creation of myTask15 */
+  osThreadDef(myTask15, Master_Modbus_Receive, osPriorityNormal, 0, 128);
+  myTask15Handle = osThreadCreate(osThread(myTask15), NULL);
 
-//  /* definition and creation of myTask16 */
-//  osThreadDef(myTask16, Master_Modbus_Transmit, osPriorityNormal, 0, 128);
-//  myTask16Handle = osThreadCreate(osThread(myTask16), NULL);
+  /* definition and creation of myTask16 */
+  osThreadDef(myTask16, Master_Modbus_Transmit, osPriorityNormal, 0, 128);
+  myTask16Handle = osThreadCreate(osThread(myTask16), NULL);
 
   /* definition and creation of myTask17 */
   osThreadDef(myTask17, Data_Storage_Task, osPriorityNormal, 0, 128);
@@ -687,21 +708,21 @@ void MX_FREERTOS_Init(void) {
   osThreadDef(myTask18, TriggerLogic_Task, osPriorityNormal, 0, 128);
   myTask18Handle = osThreadCreate(osThread(myTask18), NULL);
 
-//  /* definition and creation of myTask19 */
-//  osThreadDef(myTask19, Relay_1_Task, osPriorityNormal, 0, 128);
-//  myTask19Handle = osThreadCreate(osThread(myTask19), NULL);
+  /* definition and creation of myTask19 */
+  osThreadDef(myTask19, Relay_1_Task, osPriorityNormal, 0, 128);
+  myTask19Handle = osThreadCreate(osThread(myTask19), NULL);
 
-//  /* definition and creation of myTask20 */
-//  osThreadDef(myTask20, Relay_2_Task, osPriorityNormal, 0, 128);
-//  myTask20Handle = osThreadCreate(osThread(myTask20), NULL);
+  /* definition and creation of myTask20 */
+  osThreadDef(myTask20, Relay_2_Task, osPriorityNormal, 0, 128);
+  myTask20Handle = osThreadCreate(osThread(myTask20), NULL);
 
-//  /* definition and creation of myTask21 */
-//  osThreadDef(myTask21, HART_Receive_Task, osPriorityNormal, 0, 128);
-//  myTask21Handle = osThreadCreate(osThread(myTask21), NULL);
+  /* definition and creation of myTask21 */
+  osThreadDef(myTask21, HART_Receive_Task, osPriorityNormal, 0, 128);
+  myTask21Handle = osThreadCreate(osThread(myTask21), NULL);
 
-//  /* definition and creation of myTask22 */
-//  osThreadDef(myTask22, HART_Transmit_Task, osPriorityNormal, 0, 128);
-//  myTask22Handle = osThreadCreate(osThread(myTask22), NULL);
+  /* definition and creation of myTask22 */
+  osThreadDef(myTask22, HART_Transmit_Task, osPriorityNormal, 0, 128);
+  myTask22Handle = osThreadCreate(osThread(myTask22), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -712,7 +733,13 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE END RTOS_QUEUES */
 }
 
-/* StartDefaultTask function */
+/* USER CODE BEGIN Header_StartDefaultTask */
+/**
+  * @brief  Function implementing the defaultTask thread.
+  * @param  argument: Not used 
+  * @retval None
+  */
+/* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void const * argument)
 {
 
@@ -730,7 +757,13 @@ void StartDefaultTask(void const * argument)
   /* USER CODE END StartDefaultTask */
 }
 
-/* Acceleration_Task function */
+/* USER CODE BEGIN Header_Acceleration_Task */
+/**
+* @brief Function implementing the myTask02 thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_Acceleration_Task */
 void Acceleration_Task(void const * argument)
 {
   /* USER CODE BEGIN Acceleration_Task */
@@ -847,7 +880,13 @@ void Acceleration_Task(void const * argument)
   /* USER CODE END Acceleration_Task */
 }
 
-/* Velocity_Task function */
+/* USER CODE BEGIN Header_Velocity_Task */
+/**
+* @brief Function implementing the myTask03 thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_Velocity_Task */
 void Velocity_Task(void const * argument)
 {
   /* USER CODE BEGIN Velocity_Task */
@@ -900,7 +939,13 @@ void Velocity_Task(void const * argument)
   /* USER CODE END Velocity_Task */
 }
 
-/* Displacement_Task function */
+/* USER CODE BEGIN Header_Displacement_Task */
+/**
+* @brief Function implementing the myTask04 thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_Displacement_Task */
 void Displacement_Task(void const * argument)
 {
   /* USER CODE BEGIN Displacement_Task */
@@ -947,7 +992,13 @@ void Displacement_Task(void const * argument)
   /* USER CODE END Displacement_Task */
 }
 
-/* Q_Average_A function */
+/* USER CODE BEGIN Header_Q_Average_A */
+/**
+* @brief Function implementing the myTask05 thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_Q_Average_A */
 void Q_Average_A(void const * argument)
 {
   /* USER CODE BEGIN Q_Average_A */
@@ -1032,7 +1083,13 @@ void Q_Average_A(void const * argument)
   /* USER CODE END Q_Average_A */
 }
 
-/* Q_Average_V function */
+/* USER CODE BEGIN Header_Q_Average_V */
+/**
+* @brief Function implementing the myTask06 thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_Q_Average_V */
 void Q_Average_V(void const * argument)
 {
   /* USER CODE BEGIN Q_Average_V */
@@ -1082,7 +1139,13 @@ void Q_Average_V(void const * argument)
   /* USER CODE END Q_Average_V */
 }
 
-/* Q_Average_D function */
+/* USER CODE BEGIN Header_Q_Average_D */
+/**
+* @brief Function implementing the myTask07 thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_Q_Average_D */
 void Q_Average_D(void const * argument)
 {
   /* USER CODE BEGIN Q_Average_D */
@@ -1125,7 +1188,13 @@ void Q_Average_D(void const * argument)
   /* USER CODE END Q_Average_D */
 }
 
-/* ADC_supply_voltage function */
+/* USER CODE BEGIN Header_ADC_supply_voltage */
+/**
+* @brief Function implementing the myTask08 thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_ADC_supply_voltage */
 void ADC_supply_voltage(void const * argument)
 {
   /* USER CODE BEGIN ADC_supply_voltage */
@@ -1145,7 +1214,13 @@ void ADC_supply_voltage(void const * argument)
   /* USER CODE END ADC_supply_voltage */
 }
 
-/* Lights_Task function */
+/* USER CODE BEGIN Header_Lights_Task */
+/**
+* @brief Function implementing the myTask09 thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_Lights_Task */
 void Lights_Task(void const * argument)
 {
   /* USER CODE BEGIN Lights_Task */
@@ -1215,7 +1290,13 @@ void Lights_Task(void const * argument)
   /* USER CODE END Lights_Task */
 }
 
-/* DAC_Task function */
+/* USER CODE BEGIN Header_DAC_Task */
+/**
+* @brief Function implementing the myTask10 thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_DAC_Task */
 void DAC_Task(void const * argument)
 {
   /* USER CODE BEGIN DAC_Task */
@@ -1294,7 +1375,13 @@ void DAC_Task(void const * argument)
   /* USER CODE END DAC_Task */
 }
 
-/* Display_Task function */
+/* USER CODE BEGIN Header_Display_Task */
+/**
+* @brief Function implementing the myTask11 thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_Display_Task */
 void Display_Task(void const * argument)
 {
   /* USER CODE BEGIN Display_Task */
@@ -3468,7 +3555,13 @@ void Display_Task(void const * argument)
   /* USER CODE END Display_Task */
 }
 
-/* Button_Task function */
+/* USER CODE BEGIN Header_Button_Task */
+/**
+* @brief Function implementing the myTask12 thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_Button_Task */
 void Button_Task(void const * argument)
 {
   /* USER CODE BEGIN Button_Task */
@@ -3610,55 +3703,427 @@ void Button_Task(void const * argument)
   /* USER CODE END Button_Task */
 }
 
-/* Modbus_Receive_Task function */
+/* USER CODE BEGIN Header_Modbus_Receive_Task */
+/**
+* @brief Function implementing the myTask13 thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_Modbus_Receive_Task */
 void Modbus_Receive_Task(void const * argument)
 {
   /* USER CODE BEGIN Modbus_Receive_Task */
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+		xSemaphoreTake( Semaphore_Modbus_Rx, portMAX_DELAY );					
+						
+		__HAL_UART_CLEAR_IT(&huart2, UART_CLEAR_IDLEF); 				
+		__HAL_UART_ENABLE_IT(&huart2, UART_IT_IDLE);
+		
+		HAL_UART_DMAStop(&huart2); 
+		
+		if (bootloader_state == 0)
+		{
+			HAL_UART_Receive_DMA(&huart2, receiveBuffer, 16);					
+			
+			xSemaphoreGive( Semaphore_Modbus_Tx );
+		}		
+		
+		if (bootloader_state == 1)
+		{
+			boot_timer_counter = 0;			
+			
+			HAL_UART_Receive_DMA(&huart2, boot_receiveBuffer, 128);									
+		}	
+		
+		
+    
   }
   /* USER CODE END Modbus_Receive_Task */
 }
 
-/* Modbus_Transmit_Task function */
+/* USER CODE BEGIN Header_Modbus_Transmit_Task */
+/**
+* @brief Function implementing the myTask14 thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_Modbus_Transmit_Task */
 void Modbus_Transmit_Task(void const * argument)
 {
   /* USER CODE BEGIN Modbus_Transmit_Task */
+	uint16_t crc = 0;
+	volatile uint16_t count_registers = 0;
+	volatile uint16_t adr_of_registers = 0;
+	volatile uint16_t recieve_calculated_crc = 0;
+	volatile uint16_t recieve_actual_crc = 0;
+	volatile uint16_t outer_register = 0;
+	
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+		xSemaphoreTake( Semaphore_Modbus_Tx, portMAX_DELAY );
+		
+		//for (int i = 0; i < REG_COUNT*2+5; i++) transmitBuffer[i] = 0;
+		
+		if (receiveBuffer[0] == SLAVE_ADR)
+		{		
+				recieve_calculated_crc = crc16(receiveBuffer, 6);
+				recieve_actual_crc = (receiveBuffer[7] << 8) + receiveBuffer[6];
+				
+				//Если 16 функция, другая длина пакета
+				if (receiveBuffer[1] == 0x10) 
+				{
+					recieve_calculated_crc = crc16(receiveBuffer, 11);
+					recieve_actual_crc = (receiveBuffer[12] << 8) + receiveBuffer[11];
+				}
+				
+				//Проверяем crc
+				if (recieve_calculated_crc == recieve_actual_crc) 
+				{	
+						transmitBuffer[0] = receiveBuffer[0]; //адрес устр-ва			
+						transmitBuffer[1] = receiveBuffer[1]; //номер функции						
+					
+						adr_of_registers = (receiveBuffer[2] << 8) + receiveBuffer[3];//получаем адрес регистра				
+						count_registers = (receiveBuffer[4] << 8) + receiveBuffer[5]; //получаем кол-во регистров из запроса
+						outer_register = adr_of_registers + count_registers; //крайний регистр
+						
+						transmitBuffer[2] = count_registers*2; //количество байт	(в два раза больше чем регистров)	
+					
+					
+//						//Проверяем номер регистра
+//						if (adr_of_registers > REG_COUNT) 
+//						{
+//									if (transmitBuffer[1] == 0x3) transmitBuffer[1] = 0x83; //Function Code in Exception Response
+//									if (transmitBuffer[1] == 0x4) transmitBuffer[1] = 0x84; //Function Code in Exception Response
+//									
+//									transmitBuffer[2] = 0x02; //Exception "Illegal Data Address"		
+//									
+//									crc = crc16(transmitBuffer, 3);
+//							
+//									transmitBuffer[3] = crc;
+//									transmitBuffer[4] = crc >> 8;		 
+//							
+//									HAL_UART_Transmit_DMA(&huart2, transmitBuffer, 5);									
+//						}					
+						
+						if (receiveBuffer[1] == 0x03 || receiveBuffer[1] == 0x04) //Holding Register (FC=03) or Input Register (FC=04)
+						{		
+									if (adr_of_registers < 125) //если кол-во регистров больше 125 (255 байт макс.), опрос идет несколькими запросами 
+									{							
+											for (volatile uint16_t i=adr_of_registers, j=0; i < outer_register; i++, j++)
+											{
+												transmitBuffer[j*2+3] = settings[i] >> 8; //значение регистра Lo 		
+												transmitBuffer[j*2+4] = settings[i] & 0x00FF; //значение регистра Hi		
+											}
+									
+											crc = crc16(transmitBuffer, count_registers*2+3);				
+									
+											transmitBuffer[count_registers*2+3] = crc;
+											transmitBuffer[count_registers*2+3+1] = crc >> 8;		
+																				
+												
+											HAL_UART_Transmit_DMA(&huart2, transmitBuffer, count_registers*2+5);
+									}
+									else
+									{
+											for (uint16_t i=0, j=0; i < count_registers; i++, j++)
+											{
+												transmitBuffer[j*2+3] = settings[adr_of_registers + i] >> 8; //значение регистра Lo 		
+												transmitBuffer[j*2+4] = settings[adr_of_registers + i] & 0x00FF; //значение регистра Hi		
+											}
+									
+											crc = crc16(transmitBuffer, count_registers*2+3);				
+									
+											transmitBuffer[count_registers*2+3] = crc;
+											transmitBuffer[count_registers*2+3+1] = crc >> 8;		
+																				
+															
+											HAL_UART_Transmit_DMA(&huart2, transmitBuffer, count_registers*2+5);					
+									}
+						}							
+						else if (receiveBuffer[1] == 0x06) //Preset Single Register (FC=06)
+						{									
+							
+									settings[adr_of_registers] = (receiveBuffer[4] << 8) + receiveBuffer[5]; 										
+
+									transmitBuffer[2] = receiveBuffer[2];
+									transmitBuffer[3] = receiveBuffer[3];
+							
+									transmitBuffer[4] = receiveBuffer[4];
+									transmitBuffer[5] = receiveBuffer[5];
+							
+									crc = crc16(transmitBuffer, 6);				
+							
+									transmitBuffer[6] = crc;
+									transmitBuffer[7] = crc >> 8;		
+																		
+							
+									HAL_UART_Transmit_DMA(&huart2, transmitBuffer, 8);						
+						}				
+						else if (receiveBuffer[1] == 0x10) //Preset Multiply Registers (FC=16)
+						{									
+							
+									settings[adr_of_registers] = (receiveBuffer[7] << 8) + receiveBuffer[8]; 										
+									settings[adr_of_registers+1] = (receiveBuffer[9] << 8) + receiveBuffer[10];
+									
+
+									transmitBuffer[2] = receiveBuffer[2];//адрес первого регистра
+									transmitBuffer[3] = receiveBuffer[3];
+							
+									transmitBuffer[4] = receiveBuffer[4];//кол-во регистров	
+									transmitBuffer[5] = receiveBuffer[5];
+								
+							
+									crc = crc16(transmitBuffer, 6);				
+							
+									transmitBuffer[6] = crc;
+									transmitBuffer[7] = crc >> 8;		
+									
+							
+									HAL_UART_Transmit_DMA(&huart2, transmitBuffer, 8);						
+						}
+						else
+						{							
+									transmitBuffer[1] = 0x81; //Function Code in Exception Response
+									transmitBuffer[2] = 0x01; //Exception "Illegal function"			
+									
+									crc = crc16(transmitBuffer, 3);
+							
+									transmitBuffer[3] = crc;
+									transmitBuffer[4] = crc >> 8;		 
+							
+									HAL_UART_Transmit_DMA(&huart2, transmitBuffer, 5);
+						}					
+						
+				}
+				
+				//Команда для перепрошивки
+				if (receiveBuffer[1] == 0x62 && receiveBuffer[2] == 0x6F && receiveBuffer[3] == 0x6F && receiveBuffer[4] == 0x74 && boot_timer_counter == 0)
+				{					
+					
+					transmitBuffer[0] = 0x72;
+					transmitBuffer[1] = 0x65;
+					transmitBuffer[2] = 0x61;
+					transmitBuffer[3] = 0x64;
+					transmitBuffer[4] = 0x79;
+										
+					HAL_UART_Transmit_DMA(&huart2, transmitBuffer, 5);
+					
+					bootloader_state = 1;		
+					
+					rtc_write_backup_reg(1, bootloader_state);
+					
+					NVIC_SystemReset();
+					
+					//receiveBuffer[1] = 0x00; boot_receiveBuffer[1] = 0x00;
+					
+				}
+				else bootloader_state = 0;
+		}   
   }
   /* USER CODE END Modbus_Transmit_Task */
 }
 
-/* Master_Modbus_Receive function */
+/* USER CODE BEGIN Header_Master_Modbus_Receive */
+/**
+* @brief Function implementing the myTask15 thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_Master_Modbus_Receive */
 void Master_Modbus_Receive(void const * argument)
 {
   /* USER CODE BEGIN Master_Modbus_Receive */
+	uint16_t f_number = 0;
+	volatile uint16_t byte_number = 0;
+	uint16_t temp_data[2];
+	volatile uint16_t calculated_crc = 0;
+	volatile uint16_t actual_crc = 0;
+	volatile float32_t temp;
+	uint16_t rawValue = 0;
+	
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+		
+		xSemaphoreTake( Semaphore_Master_Modbus_Rx, portMAX_DELAY );					
+				
+		__HAL_UART_CLEAR_IT(&huart3, UART_CLEAR_IDLEF); 				
+		__HAL_UART_ENABLE_IT(&huart3, UART_IT_IDLE);
+		
+		HAL_UART_DMAStop(&huart3); 
+
+		HAL_UART_Receive_DMA(&huart3, master_receive_buffer, 9); 
+		
+		if (master_receive_buffer[0] == master_array[master_response_received_id].master_addr)
+		{						
+				f_number = master_receive_buffer[1]; //номер функции	
+				byte_number = master_receive_buffer[2];//кол-во байт
+						
+			
+				//считаем crc
+				calculated_crc = crc16(master_receive_buffer, 3 + byte_number);										
+				actual_crc = master_receive_buffer[3 + byte_number];
+				actual_crc += master_receive_buffer[3 + byte_number + 1] << 8;
+				
+				if (calculated_crc == actual_crc)
+				{
+						if (master_receive_buffer[1] == 0x03 || master_receive_buffer[1] == 0x04) //Holding Register (FC=03)
+						{															
+								if ( master_array[master_response_received_id].master_type == 0 ) //Тип данных, Dec
+								{	
+									master_array[master_response_received_id].master_value = (master_receive_buffer[3] << 8 ) + master_receive_buffer[4];
+								}
+								if ( master_array[master_response_received_id].master_type == 1 ) //Тип данных, Float (ABCD)
+								{
+									temp_data[0] = (master_receive_buffer[3] << 8 ) + master_receive_buffer[4];
+									temp_data[1] = (master_receive_buffer[5] << 8 ) + master_receive_buffer[6];
+									master_array[master_response_received_id].master_value = convert_hex_to_float(&temp_data[0], 0);
+								}								
+								if ( master_array[master_response_received_id].master_type == 2 || master_array[master_response_received_id].master_type == 5) //Тип данных, Int
+								{									
+									rawValue = (master_receive_buffer[3] << 8 ) + master_receive_buffer[4];
+																		
+									if ( rawValue >> 14 == 0 )
+									{
+										master_array[master_response_received_id].master_value = rawValue; 																			
+									}
+									else
+									{										
+										master_array[master_response_received_id].master_value = rawValue | ~((1 << 15) - 1);
+									}
+								}
+								if ( master_array[master_response_received_id].master_type == 3 ) //Тип данных, Abs. int
+								{									
+									rawValue = (master_receive_buffer[3] << 8 ) + master_receive_buffer[4];
+																		
+									if ( rawValue >> 14 == 0 ) //Определяем знак
+									{
+										master_array[master_response_received_id].master_value = rawValue; 																			
+									}
+									else
+									{										
+										master_array[master_response_received_id].master_value = rawValue | ~((1 << 15) - 1);
+										master_array[master_response_received_id].master_value = -master_array[master_response_received_id].master_value;
+									}
+								}
+
+								if ( master_array[master_response_received_id].master_type == 4 ) //Тип данных, swFloat (swap words CDAB)
+								{
+									temp_data[0] = (master_receive_buffer[5] << 8 ) + master_receive_buffer[6];
+									temp_data[1] = (master_receive_buffer[3] << 8 ) + master_receive_buffer[4];
+									master_array[master_response_received_id].master_value = convert_hex_to_float(&temp_data[0], 0);
+								}									
+						}
+						
+						//Применяем кооэф. к значению
+						master_array[master_response_received_id].master_value = master_array[master_response_received_id].master_value * master_array[master_response_received_id].master_coef_A + master_array[master_response_received_id].master_coef_B;
+						
+						xTaskNotifyGive( xTask18 ); //Посылаем уведомление, если получен ответ 							
+						
+						//Устанавливаем признак "обрыва нет"
+						break_sensor_485 = 0;
+						//Обнуляем таймер обрыва датчика 485
+						timer_485_counter = 0;
+						
+				}
+				else 
+				{
+					mb_master_crc_error++;						
+				}
+				
+				mb_master_crc_error_percent = (float32_t) mb_master_crc_error * 100.0 / mb_master_response;
+				
+				//Счетчик всех ответов
+				mb_master_response++;			
+		}
+			
+    
   }
   /* USER CODE END Master_Modbus_Receive */
 }
 
-/* Master_Modbus_Transmit function */
+/* USER CODE BEGIN Header_Master_Modbus_Transmit */
+/**
+* @brief Function implementing the myTask16 thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_Master_Modbus_Transmit */
 void Master_Modbus_Transmit(void const * argument)
 {
   /* USER CODE BEGIN Master_Modbus_Transmit */
+	uint16_t crc = 0;
+	TimeOut_t xTimeOut;
+		
+	xTask18 = xTaskGetCurrentTaskHandle();
+	
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+		
+		for(uint8_t i=0; i< REG_485_QTY; i++)
+		{	
+				master_transmit_buffer[0] = master_array[i].master_addr;
+				master_transmit_buffer[1] = master_array[i].master_func;
+				master_transmit_buffer[2] = (master_array[i].master_numreg - 1) >> 8; 		//Смещение адреса, т.к. регистр номер 1 равно адресу 0.
+				master_transmit_buffer[3] = (master_array[i].master_numreg - 1) & 0x00FF;
+				master_transmit_buffer[4] = 0;			
+				if (master_array[i].master_type == 0) master_transmit_buffer[5] = 1;
+				else master_transmit_buffer[5] = 2;				
+						
+				crc = crc16(master_transmit_buffer, 6);				
+						
+				master_transmit_buffer[6] = crc;
+				master_transmit_buffer[7] = crc >> 8;
+				
+				master_response_received_id = i;
+
+			
+				if ( master_array[i].master_on == 1) //Если регистр выключен, то запрашиваем следующий		
+				{					
+					
+					HAL_UART_Transmit_DMA(&huart3, master_transmit_buffer, 8);
+					
+					//Счетчик запросов
+					mb_master_request++;
+
+					
+					//Фиксируем время для расчета таймаута					
+					xTimeOutBefore = xTaskGetTickCount();			
+					
+					//Ждем уведомление о получении ответа, либо ошибка по таймауту
+					ulTaskNotifyTake( pdTRUE, master_array[i].request_timeout ); 
+					
+					//Проверка таймаута
+					xTotalTimeOutSuspended = xTaskGetTickCount() - xTimeOutBefore;					
+					
+					if ( xTotalTimeOutSuspended >= master_array[i].request_timeout ) 
+					{
+						mb_master_timeout_error++;											
+					}
+					
+					mb_master_timeout_error_percent = (float32_t) mb_master_timeout_error * 100.0 / mb_master_request; 						
+					
+				}				
+		}
+		
+		//Общий интервал опроса всех регистров
+		osDelay(mb_master_timeout);
+    
   }
   /* USER CODE END Master_Modbus_Transmit */
 }
 
-/* Data_Storage_Task function */
+/* USER CODE BEGIN Header_Data_Storage_Task */
+/**
+* @brief Function implementing the myTask17 thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_Data_Storage_Task */
 void Data_Storage_Task(void const * argument)
 {
   /* USER CODE BEGIN Data_Storage_Task */
@@ -3890,7 +4355,7 @@ void Data_Storage_Task(void const * argument)
 					
 			settings[100] = 10; 		
 			
-			settings[109] = 20000; 
+			settings[109] = 3000; 
 			
 			convert_float_and_swap(22, &temp[0]);	
 			settings[110] = temp[0];
@@ -3917,7 +4382,13 @@ void Data_Storage_Task(void const * argument)
   /* USER CODE END Data_Storage_Task */
 }
 
-/* TriggerLogic_Task function */
+/* USER CODE BEGIN Header_TriggerLogic_Task */
+/**
+* @brief Function implementing the myTask18 thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_TriggerLogic_Task */
 void TriggerLogic_Task(void const * argument)
 {
   /* USER CODE BEGIN TriggerLogic_Task */
@@ -4175,7 +4646,13 @@ void TriggerLogic_Task(void const * argument)
   /* USER CODE END TriggerLogic_Task */
 }
 
-/* Relay_1_Task function */
+/* USER CODE BEGIN Header_Relay_1_Task */
+/**
+* @brief Function implementing the myTask19 thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_Relay_1_Task */
 void Relay_1_Task(void const * argument)
 {
   /* USER CODE BEGIN Relay_1_Task */
@@ -4213,7 +4690,13 @@ void Relay_1_Task(void const * argument)
   /* USER CODE END Relay_1_Task */
 }
 
-/* Relay_2_Task function */
+/* USER CODE BEGIN Header_Relay_2_Task */
+/**
+* @brief Function implementing the myTask20 thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_Relay_2_Task */
 void Relay_2_Task(void const * argument)
 {
   /* USER CODE BEGIN Relay_2_Task */
@@ -4257,7 +4740,13 @@ void Relay_2_Task(void const * argument)
   /* USER CODE END Relay_2_Task */
 }
 
-/* HART_Receive_Task function */
+/* USER CODE BEGIN Header_HART_Receive_Task */
+/**
+* @brief Function implementing the myTask21 thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_HART_Receive_Task */
 void HART_Receive_Task(void const * argument)
 {
   /* USER CODE BEGIN HART_Receive_Task */
@@ -4269,7 +4758,13 @@ void HART_Receive_Task(void const * argument)
   /* USER CODE END HART_Receive_Task */
 }
 
-/* HART_Transmit_Task function */
+/* USER CODE BEGIN Header_HART_Transmit_Task */
+/**
+* @brief Function implementing the myTask22 thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_HART_Transmit_Task */
 void HART_Transmit_Task(void const * argument)
 {
   /* USER CODE BEGIN HART_Transmit_Task */
@@ -4281,6 +4776,7 @@ void HART_Transmit_Task(void const * argument)
   /* USER CODE END HART_Transmit_Task */
 }
 
+/* Private application code --------------------------------------------------*/
 /* USER CODE BEGIN Application */
 
 
@@ -4675,7 +5171,7 @@ void init_menu(uint8_t where_from) //Иниц. меню (1 - конфиг, т.е. зажата кнопка 
 	number_of_items_in_the_menu ++; //Информация
 	
 	
-	if (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_8) == 0 && where_from == 1) 
+	if (HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_7) == 0 && where_from == 1) 
 	{
 		config_mode = 1;	
 		menu_index_array[number_of_items_in_the_menu] = items_menu_config;

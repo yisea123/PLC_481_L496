@@ -5,14 +5,6 @@ plc_481_l496\cmsis_os.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/Free
 plc_481_l496\cmsis_os.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stddef.h
 plc_481_l496\cmsis_os.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdint.h
 plc_481_l496\cmsis_os.o: ../Inc/FreeRTOSConfig.h
-plc_481_l496\cmsis_os.o: ../Inc/main.h
-plc_481_l496\cmsis_os.o: ../Drivers/CMSIS/Include/arm_math.h
-plc_481_l496\cmsis_os.o: ../Drivers/CMSIS/Include/core_cm4.h
-plc_481_l496\cmsis_os.o: ../Drivers/CMSIS/Include/core_cmInstr.h
-plc_481_l496\cmsis_os.o: ../Drivers/CMSIS/Include/cmsis_armcc.h
-plc_481_l496\cmsis_os.o: ../Drivers/CMSIS/Include/core_cmFunc.h
-plc_481_l496\cmsis_os.o: ../Drivers/CMSIS/Include/core_cmSimd.h
-plc_481_l496\cmsis_os.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\math.h
 plc_481_l496\cmsis_os.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/projdefs.h
 plc_481_l496\cmsis_os.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/portable.h
 plc_481_l496\cmsis_os.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/deprecated_definitions.h
@@ -24,3 +16,4 @@ plc_481_l496\cmsis_os.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/time
 plc_481_l496\cmsis_os.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/queue.h
 plc_481_l496\cmsis_os.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/semphr.h
 plc_481_l496\cmsis_os.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/event_groups.h
+plc_481_l496\cmsis_os.o: ../Drivers/CMSIS/Include/cmsis_armcc.h

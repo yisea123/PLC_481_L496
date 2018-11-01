@@ -13,36 +13,36 @@ extern uint16_t settings[REG_COUNT];
 
 uint8_t write_flash(uint32_t page, uint16_t* data, uint32_t size)
 {
-	uint8_t status = 0;
-
+	volatile uint8_t status = 0;
+	volatile uint16_t err = 0;
 	FLASH_EraseInitTypeDef EraseInitStruct;
-		
 	uint32_t PAGEError = 0;
 	EraseInitStruct.TypeErase = FLASH_TYPEERASE_PAGES;
-	EraseInitStruct.Page = page;
+	EraseInitStruct.Banks = 1;
+	EraseInitStruct.Page = page;	
 	EraseInitStruct.NbPages = 4;
-
-	status = HAL_FLASH_Unlock();	
-	osDelay(5);
-	status = HAL_FLASHEx_Erase(&EraseInitStruct,&PAGEError);	
 	
-	CLEAR_BIT(FLASH->CR, FLASH_CR_PER);	
+	
+	status = HAL_FLASH_Unlock();	
+	osDelay(5);	
+	
+	status = HAL_FLASHEx_Erase(&EraseInitStruct,&PAGEError);	
 	
 	osDelay(5);
 	
 	if (status == 0)
 	{
 		for (int i=0; i<size; i++)
-		status = HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, (0x8000000 + (page * 2048)) + i*8, data[i]); 		
+		status = HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, (0x8000000 + (page * 2048)) + i*8, data[i]);		
+		
+		if (status != 0) 
+		{
+			err = size;
+		}
 	}
 	
-//	osDelay(5);
-//	
-//	if (status == 0)
-//	{
-//		for (int i=0; i<size; i++)
-//		status = HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, (0x8000000 + ((page+1) * 2048)) + i*8, *(uint32_t *) &data[i]); 		
-//	}
+	//CLEAR_BIT(FLASH->CR, FLASH_CR_PER);	
+
 
 	HAL_FLASH_Lock();
 
@@ -50,6 +50,7 @@ uint8_t write_flash(uint32_t page, uint16_t* data, uint32_t size)
 
 //__HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_ALL_ERRORS);
 //status = HAL_FLASH_GetError();	
+//FLASH->CR &= ~FLASH_CR_PG;
 }
 
 uint32_t read_flash(uint32_t addr)
@@ -112,8 +113,8 @@ uint8_t read_registers_from_flash(uint16_t* data_out)
 {	
 	
 	uint16_t* flash_set_read = pvPortMalloc( sizeof(uint16_t)*REG_COUNT+1 );	
-	uint16_t orig_crc = 0;
-	uint16_t actual_crc = 0;	
+	volatile uint16_t orig_crc = 0;
+	volatile uint16_t actual_crc = 0;	
 	
 	
 	for (int i=0; i<REG_COUNT+1; i++)
@@ -165,8 +166,8 @@ uint8_t write_registers_to_flash(uint16_t* data)
 		
 	uint16_t* flash_set_write = pvPortMalloc( sizeof(uint16_t)*REG_COUNT+1 );
 	
-	uint16_t crc = 0;
-	uint8_t res = 0;
+	volatile uint16_t crc = 0;
+	volatile uint8_t res = 0;
 	
 	for (int i=0; i<REG_COUNT; i++)
 	{

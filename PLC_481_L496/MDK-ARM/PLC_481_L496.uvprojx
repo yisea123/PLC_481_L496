@@ -365,7 +365,7 @@
               <MiscControls></MiscControls>
               <Define>USE_HAL_DRIVER,STM32L496xx, ARM_MATH_CM4, __FPU_PRESENT</Define>
               <Undefine></Undefine>
-              <IncludePath>../Inc;    ../Drivers/STM32L4xx_HAL_Driver/Inc;    ../Drivers/STM32L4xx_HAL_Driver/Inc/Legacy;    ../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM4F;    ../Drivers/CMSIS/Device/ST/STM32L4xx/Include;    ../Middlewares/Third_Party/FreeRTOS/Source/include;    ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS;    ../Drivers/CMSIS/Include;    ..\Src\display</IncludePath>
+              <IncludePath>../Inc;       ../Drivers/STM32L4xx_HAL_Driver/Inc;       ../Drivers/STM32L4xx_HAL_Driver/Inc/Legacy;       ../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM4F;       ../Drivers/CMSIS/Device/ST/STM32L4xx/Include;       ../Middlewares/Third_Party/FreeRTOS/Source/include;       ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS;       ../Drivers/CMSIS/Include;       ..\Src\display</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -482,6 +482,16 @@
               <FilePath>..\Src\Task_manager.c</FilePath>
             </File>
             <File>
+              <FileName>stm32l4xx_hal_rtc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Drivers\STM32L4xx_HAL_Driver\Src\stm32l4xx_hal_rtc.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32l4xx_hal_rtc_ex.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Drivers\STM32L4xx_HAL_Driver\Src\stm32l4xx_hal_rtc_ex.c</FilePath>
+            </File>
+            <File>
               <FileName>main.c</FileName>
               <FileType>1</FileType>
               <FilePath>../Src/main.c</FilePath>
@@ -540,16 +550,6 @@
               <FileName>stm32l4xx_hal_timebase_TIM.c</FileName>
               <FileType>1</FileType>
               <FilePath>../Src/stm32l4xx_hal_timebase_TIM.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32l4xx_hal_rtc.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\Drivers\STM32L4xx_HAL_Driver\Src\stm32l4xx_hal_rtc.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32l4xx_hal_rtc_ex.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\Drivers\STM32L4xx_HAL_Driver\Src\stm32l4xx_hal_rtc_ex.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -720,6 +720,11 @@
               <FileName>queue.c</FileName>
               <FileType>1</FileType>
               <FilePath>../Middlewares/Third_Party/FreeRTOS/Source/queue.c</FilePath>
+            </File>
+            <File>
+              <FileName>stream_buffer.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>../Middlewares/Third_Party/FreeRTOS/Source/stream_buffer.c</FilePath>
             </File>
             <File>
               <FileName>tasks.c</FileName>
