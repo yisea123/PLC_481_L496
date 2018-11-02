@@ -1231,9 +1231,9 @@ void Lights_Task(void const * argument)
 		if (warming_flag == 1) 
 		{
 			HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_8);
-			osDelay(200);
+			osDelay(300);
 			HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_9);
-			osDelay(200);						
+			osDelay(300);						
 		}
 		else
 		{	
@@ -1243,14 +1243,14 @@ void Lights_Task(void const * argument)
 			if (( break_sensor_icp == 1 && channel_ICP_ON == 1) || (break_sensor_420 == 1 && channel_4_20_ON == 1) || (break_sensor_485 == 1 && channel_485_ON == 1 )) 
 			{
 				//Горит красный
-				HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, GPIO_PIN_RESET);
-				HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, GPIO_PIN_SET);
+				HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, GPIO_PIN_SET);
+				HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, GPIO_PIN_RESET);
 			}
 			else 
 			{				
 				//Горит зеленый
-				HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, GPIO_PIN_SET);
-				HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, GPIO_PIN_RESET);	
+				HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, GPIO_PIN_RESET);
+				HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, GPIO_PIN_SET);	
 			}
 			
 						
@@ -1272,8 +1272,8 @@ void Lights_Task(void const * argument)
 			if (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_7) == 1)
 			{				
 				//Мигает Красный 
-				HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, GPIO_PIN_RESET);
-				HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, GPIO_PIN_SET);
+				HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, GPIO_PIN_SET);
+				HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, GPIO_PIN_RESET);
 				
 				osDelay(200);
 				
@@ -3950,12 +3950,12 @@ void Master_Modbus_Receive(void const * argument)
 		
 		xSemaphoreTake( Semaphore_Master_Modbus_Rx, portMAX_DELAY );					
 				
-		__HAL_UART_CLEAR_IT(&huart3, UART_CLEAR_IDLEF); 				
-		__HAL_UART_ENABLE_IT(&huart3, UART_IT_IDLE);
+		__HAL_UART_CLEAR_IT(&huart1, UART_CLEAR_IDLEF); 				
+		__HAL_UART_ENABLE_IT(&huart1, UART_IT_IDLE);
 		
-		HAL_UART_DMAStop(&huart3); 
+		HAL_UART_DMAStop(&huart1); 
 
-		HAL_UART_Receive_DMA(&huart3, master_receive_buffer, 9); 
+		HAL_UART_Receive_DMA(&huart1, master_receive_buffer, 9); 
 		
 		if (master_receive_buffer[0] == master_array[master_response_received_id].master_addr)
 		{						
@@ -4085,7 +4085,7 @@ void Master_Modbus_Transmit(void const * argument)
 				if ( master_array[i].master_on == 1) //Если регистр выключен, то запрашиваем следующий		
 				{					
 					
-					HAL_UART_Transmit_DMA(&huart3, master_transmit_buffer, 8);
+					HAL_UART_Transmit_DMA(&huart1, master_transmit_buffer, 8);
 					
 					//Счетчик запросов
 					mb_master_request++;
@@ -4355,7 +4355,7 @@ void Data_Storage_Task(void const * argument)
 					
 			settings[100] = 10; 		
 			
-			settings[109] = 3000; 
+			settings[109] = 20000; 
 			
 			convert_float_and_swap(22, &temp[0]);	
 			settings[110] = temp[0];
@@ -4610,7 +4610,7 @@ void TriggerLogic_Task(void const * argument)
 		}
 		
 		//Квитирование
-		if (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_9) == 0 || settings[96] == 1 || (menu_horizontal == 0 && button_center_pressed_in_short == 1)) 
+		if (HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13) == 0 || settings[96] == 1 || (menu_horizontal == 0 && button_center_pressed_in_short == 1)) 
 		{
 			HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, GPIO_PIN_RESET);
 			state_warning_relay = 0;
@@ -4750,10 +4750,49 @@ void Relay_2_Task(void const * argument)
 void HART_Receive_Task(void const * argument)
 {
   /* USER CODE BEGIN HART_Receive_Task */
+	uint16_t crc = 0;
+	uint16_t count_registers = 0;
+	uint16_t adr_of_registers = 0;
+	uint16_t recieve_calculated_crc = 0;
+	uint16_t recieve_actual_crc = 0;
+	uint16_t outer_register = 0;
+	uint8_t func_number = 0;
+	uint16_t byte_qty = 0;
+	
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+		xSemaphoreTake( Semaphore_HART_Receive, portMAX_DELAY );		
+		
+		__HAL_UART_CLEAR_IT(&huart5, UART_CLEAR_IDLEF); 				
+		__HAL_UART_ENABLE_IT(&huart5, UART_IT_IDLE);
+		
+		HAL_UART_DMAStop(&huart5); 				
+
+		HAL_UART_Receive_DMA(&huart5, HART_receiveBuffer, 16);							
+		
+		
+		if (HART_receiveBuffer[0] == hart_slave_address)
+		{		
+				
+				func_number = HART_receiveBuffer[1]; //номер функции	
+				byte_qty = HART_receiveBuffer[2];//кол-во байт
+			
+			  recieve_calculated_crc = crc16(HART_receiveBuffer, 6);
+				recieve_actual_crc = (HART_receiveBuffer[7] << 8) + HART_receiveBuffer[6];
+				
+				//Проверяем crc
+				if (recieve_calculated_crc == recieve_actual_crc) 
+				{						
+					if (HART_receiveBuffer[1] == 0x03 || HART_receiveBuffer[1] == 0x04) //Holding Register (FC=03)
+					{
+						hart_value = ( HART_receiveBuffer[3] << 8 ) + HART_receiveBuffer[4];
+					}
+						
+				}
+		}
+
+    
   }
   /* USER CODE END HART_Receive_Task */
 }
@@ -4769,9 +4808,33 @@ void HART_Transmit_Task(void const * argument)
 {
   /* USER CODE BEGIN HART_Transmit_Task */
   /* Infinite loop */
+	uint16_t crc = 0;
+	
+  /* Infinite loop */
   for(;;)
-  {
-    osDelay(1);
+  {   
+		
+		if (hart_switch_on == 1)
+		{
+
+			HART_transmitBuffer[0] = hart_slave_address;
+			HART_transmitBuffer[1] = hart_func;
+			HART_transmitBuffer[2] = hart_slave_numreg >> 8;
+			HART_transmitBuffer[3] = hart_slave_numreg & 0x00FF;
+			HART_transmitBuffer[4] = hart_regs_qty >> 8;
+			HART_transmitBuffer[5] = hart_regs_qty & 0x00FF;		
+			
+			crc = crc16(HART_transmitBuffer, 6);				
+						
+			HART_transmitBuffer[6] = crc;
+			HART_transmitBuffer[7] = crc >> 8;	
+			
+			HAL_UART_Transmit_DMA(&huart5, HART_transmitBuffer, 8);
+			
+		}
+		
+		osDelay(1000);
+		
   }
   /* USER CODE END HART_Transmit_Task */
 }

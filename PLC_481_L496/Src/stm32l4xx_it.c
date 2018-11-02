@@ -319,7 +319,7 @@ void USART1_IRQHandler(void)
 			__HAL_UART_CLEAR_IT(&huart1, UART_CLEAR_IDLEF);
 			huart1.Instance->CR1 &= ~USART_CR1_IDLEIE;
 					
-			if( Semaphore_HART_Receive != NULL )
+			if( Semaphore_Master_Modbus_Rx != NULL )
 			{
 						static signed portBASE_TYPE xHigherPriorityTaskWoken;
 						xHigherPriorityTaskWoken = pdFALSE;	
@@ -375,24 +375,24 @@ void USART2_IRQHandler(void)
 void USART3_IRQHandler(void)
 {
   /* USER CODE BEGIN USART3_IRQn 0 */
-	if( (huart3.Instance->ISR & USART_ISR_IDLE) != RESET )
-	{		
-		
-			__HAL_UART_CLEAR_IT(&huart3, UART_CLEAR_IDLEF);
-			huart3.Instance->CR1 &= ~USART_CR1_IDLEIE;
-					
-			if( Semaphore_Master_Modbus_Rx != NULL )
-			{
-						static signed portBASE_TYPE xHigherPriorityTaskWoken;
-						xHigherPriorityTaskWoken = pdFALSE;	
-						//xSemaphoreGiveFromISR(Semaphore_Modbus_Rx_2, &xHigherPriorityTaskWoken);
-						if( xHigherPriorityTaskWoken == pdTRUE )
-						{
-								portEND_SWITCHING_ISR(xHigherPriorityTaskWoken);
-						}									
-			}			
+//	if( (huart3.Instance->ISR & USART_ISR_IDLE) != RESET )
+//	{		
+//		
+//			__HAL_UART_CLEAR_IT(&huart3, UART_CLEAR_IDLEF);
+//			huart3.Instance->CR1 &= ~USART_CR1_IDLEIE;
+//					
+//			if( Semaphore_Master_Modbus_Rx != NULL )
+//			{
+//						static signed portBASE_TYPE xHigherPriorityTaskWoken;
+//						xHigherPriorityTaskWoken = pdFALSE;	
+//						//xSemaphoreGiveFromISR(Semaphore_Modbus_Rx_2, &xHigherPriorityTaskWoken);
+//						if( xHigherPriorityTaskWoken == pdTRUE )
+//						{
+//								portEND_SWITCHING_ISR(xHigherPriorityTaskWoken);
+//						}									
+//			}			
 
-	}	
+//	}	
   /* USER CODE END USART3_IRQn 0 */
   HAL_UART_IRQHandler(&huart3);
   /* USER CODE BEGIN USART3_IRQn 1 */
@@ -412,7 +412,7 @@ void UART5_IRQHandler(void)
 			__HAL_UART_CLEAR_IT(&huart5, UART_CLEAR_IDLEF);
 			huart5.Instance->CR1 &= ~USART_CR1_IDLEIE;
 					
-			if( Semaphore_Master_Modbus_Rx != NULL )
+			if( Semaphore_HART_Receive != NULL )
 			{
 						static signed portBASE_TYPE xHigherPriorityTaskWoken;
 						xHigherPriorityTaskWoken = pdFALSE;	

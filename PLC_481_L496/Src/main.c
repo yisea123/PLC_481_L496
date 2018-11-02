@@ -267,12 +267,13 @@ int main(void)
 	__HAL_UART_ENABLE_IT(&huart1, UART_IT_RXNE);	
 	__HAL_UART_ENABLE_IT(&huart2, UART_IT_RXNE);
 	__HAL_UART_ENABLE_IT(&huart3, UART_IT_RXNE);
+	__HAL_UART_ENABLE_IT(&huart5, UART_IT_RXNE);
 	
 	//Проверка частоты тактирования (на PA8)
 	//HAL_RCC_MCOConfig(RCC_MCO, RCC_MCO1SOURCE_SYSCLK, RCC_MCODIV_1);
 
-	//Set RTS (HART Rx)
-	//HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12, GPIO_PIN_SET);
+//	//Set RTS (for HART Rx)
+//	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, GPIO_PIN_RESET);
 	
 	/* Enable the UART Transmit Complete Interrupt */ 
 	__HAL_UART_ENABLE_IT(&huart1, UART_IT_TC);	
@@ -315,17 +316,13 @@ void SystemClock_Config(void)
 
     /**Initializes the CPU, AHB and APB busses clocks 
     */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI|RCC_OSCILLATORTYPE_HSE
-                              |RCC_OSCILLATORTYPE_MSI;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI|RCC_OSCILLATORTYPE_HSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
   RCC_OscInitStruct.HSICalibrationValue = 64;
-  RCC_OscInitStruct.MSIState = RCC_MSI_ON;
-  RCC_OscInitStruct.MSICalibrationValue = 0;
-  RCC_OscInitStruct.MSIClockRange = RCC_MSIRANGE_6;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_MSI;
-  RCC_OscInitStruct.PLL.PLLM = 1;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
+  RCC_OscInitStruct.PLL.PLLM = 4;
   RCC_OscInitStruct.PLL.PLLN = 40;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
   RCC_OscInitStruct.PLL.PLLQ = RCC_PLLQ_DIV2;
@@ -357,8 +354,8 @@ void SystemClock_Config(void)
   PeriphClkInit.Usart3ClockSelection = RCC_USART3CLKSOURCE_PCLK1;
   PeriphClkInit.Uart5ClockSelection = RCC_UART5CLKSOURCE_HSI;
   PeriphClkInit.AdcClockSelection = RCC_ADCCLKSOURCE_PLLSAI1;
-  PeriphClkInit.PLLSAI1.PLLSAI1Source = RCC_PLLSOURCE_MSI;
-  PeriphClkInit.PLLSAI1.PLLSAI1M = 1;
+  PeriphClkInit.PLLSAI1.PLLSAI1Source = RCC_PLLSOURCE_HSI;
+  PeriphClkInit.PLLSAI1.PLLSAI1M = 4;
   PeriphClkInit.PLLSAI1.PLLSAI1N = 16;
   PeriphClkInit.PLLSAI1.PLLSAI1P = RCC_PLLP_DIV2;
   PeriphClkInit.PLLSAI1.PLLSAI1Q = RCC_PLLQ_DIV2;

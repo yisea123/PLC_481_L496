@@ -77,14 +77,14 @@ void MX_UART5_Init(void)
   huart5.Instance = UART5;
   huart5.Init.BaudRate = 1200;
   huart5.Init.WordLength = UART_WORDLENGTH_8B;
-  huart5.Init.StopBits = UART_STOPBITS_1;
+  huart5.Init.StopBits = UART_STOPBITS_2;
   huart5.Init.Parity = UART_PARITY_NONE;
   huart5.Init.Mode = UART_MODE_TX_RX;
   huart5.Init.HwFlowCtl = UART_HWCONTROL_NONE;
   huart5.Init.OverSampling = UART_OVERSAMPLING_16;
   huart5.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
   huart5.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
-  if (HAL_RS485Ex_Init(&huart5, UART_DE_POLARITY_HIGH, 0, 0) != HAL_OK)
+  if (HAL_RS485Ex_Init(&huart5, UART_DE_POLARITY_LOW, 31, 31) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
   }
