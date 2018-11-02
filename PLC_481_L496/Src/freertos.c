@@ -99,7 +99,8 @@ xSemaphoreHandle 	Semaphore1, Semaphore2,
 									Semaphore_Master_Modbus_Rx, Semaphore_Master_Modbus_Tx,
 									Semaphore_Relay_1, Semaphore_Relay_2,
 									Semaphore_HART_Receive, Semaphore_HART_Transmit,
-									Mutex_Setting;
+									Mutex_Setting,
+									Semaphore_TBUS_Modbus_Rx, Semaphore_TBUS_Modbus_Tx;
 									
 uint16_t raw_adc_value[RAW_ADC_BUFFER_SIZE];
 float32_t float_adc_value_ICP[ADC_BUFFER_SIZE];
@@ -188,6 +189,8 @@ uint8_t master_transmitBuffer[8];
 uint8_t master_receiveBuffer[255];
 uint8_t HART_receiveBuffer[16];
 uint8_t HART_transmitBuffer[8];
+uint8_t TBUS_transmitBuffer[REG_COUNT*2+5];
+uint8_t TBUS_receiveBuffer[16];
 
 uint8_t hart_switch_on = 0;
 uint16_t hart_slave_address = 0;
@@ -357,8 +360,9 @@ uint16_t menu_index_array[7];
 uint16_t menu_index_pointer = 0;
 uint16_t menu_vertical = 0;
 uint16_t menu_horizontal = 0;
-float32_t baud_rate_uart_2 = 0; //slave
-float32_t baud_rate_uart_3 = 0; //master
+float32_t baud_rate_uart_1 = 0;	//master Ex (XP2)
+float32_t baud_rate_uart_2 = 0; //slave Ex (XP6)
+float32_t baud_rate_uart_3 = 0; //slave (TBUS)
 uint8_t bootloader_state = 0;
 extern uint32_t boot_timer_counter;	
 uint16_t trigger_event_attribute = 0;
@@ -466,6 +470,8 @@ osThreadId myTask19Handle;
 osThreadId myTask20Handle;
 osThreadId myTask21Handle;
 osThreadId myTask22Handle;
+osThreadId myTask23Handle;
+osThreadId myTask24Handle;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -513,6 +519,8 @@ void Relay_1_Task(void const * argument);
 void Relay_2_Task(void const * argument);
 void HART_Receive_Task(void const * argument);
 void HART_Transmit_Task(void const * argument);
+void TBUS_Modbus_Receive_Task(void const * argument);
+void TBUS_Modbus_Transmit_Task(void const * argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -621,6 +629,8 @@ void MX_FREERTOS_Init(void) {
 	vSemaphoreCreateBinary(Semaphore_HART_Receive);
 	vSemaphoreCreateBinary(Semaphore_HART_Transmit);
 	Mutex_Setting = xSemaphoreCreateMutex();       
+	vSemaphoreCreateBinary(Semaphore_TBUS_Modbus_Rx);
+	vSemaphoreCreateBinary(Semaphore_TBUS_Modbus_Tx);
   /* USER CODE END Init */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -723,6 +733,14 @@ void MX_FREERTOS_Init(void) {
   /* definition and creation of myTask22 */
   osThreadDef(myTask22, HART_Transmit_Task, osPriorityNormal, 0, 128);
   myTask22Handle = osThreadCreate(osThread(myTask22), NULL);
+
+  /* definition and creation of myTask23 */
+  osThreadDef(myTask23, TBUS_Modbus_Receive_Task, osPriorityNormal, 0, 128);
+  myTask23Handle = osThreadCreate(osThread(myTask23), NULL);
+
+  /* definition and creation of myTask24 */
+  osThreadDef(myTask24, TBUS_Modbus_Transmit_Task, osPriorityNormal, 0, 128);
+  myTask24Handle = osThreadCreate(osThread(myTask24), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -4352,7 +4370,8 @@ void Data_Storage_Task(void const * argument)
 				}
 				else settings[i] = 0;	
 			}
-					
+
+
 			settings[100] = 10; 		
 			
 			settings[109] = 20000; 
@@ -4366,6 +4385,10 @@ void Data_Storage_Task(void const * argument)
 			settings[113] = temp[1];		
 			
 			convert_float_and_swap(115200, &temp[0]);	
+			settings[65] = temp[0];
+			settings[66] = temp[1];			
+			settings[68] = temp[0];
+			settings[69] = temp[1];
 			settings[101] = temp[0];
 			settings[102] = temp[1];		
 	
@@ -4837,6 +4860,195 @@ void HART_Transmit_Task(void const * argument)
 		
   }
   /* USER CODE END HART_Transmit_Task */
+}
+
+/* USER CODE BEGIN Header_TBUS_Modbus_Receive_Task */
+/**
+* @brief Function implementing the myTask23 thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_TBUS_Modbus_Receive_Task */
+void TBUS_Modbus_Receive_Task(void const * argument)
+{
+  /* USER CODE BEGIN TBUS_Modbus_Receive_Task */
+	
+  /* Infinite loop */
+  for(;;)
+  {
+		xSemaphoreTake( Semaphore_TBUS_Modbus_Rx, portMAX_DELAY );					
+						
+		__HAL_UART_CLEAR_IT(&huart3, UART_CLEAR_IDLEF); 				
+		__HAL_UART_ENABLE_IT(&huart3, UART_IT_IDLE);
+		
+		HAL_UART_DMAStop(&huart3); 
+				
+		HAL_UART_Receive_DMA(&huart3, TBUS_receiveBuffer, 16);					
+			
+		xSemaphoreGive( Semaphore_TBUS_Modbus_Tx );
+						
+   
+  }
+  /* USER CODE END TBUS_Modbus_Receive_Task */
+}
+
+/* USER CODE BEGIN Header_TBUS_Modbus_Transmit_Task */
+/**
+* @brief Function implementing the myTask24 thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_TBUS_Modbus_Transmit_Task */
+void TBUS_Modbus_Transmit_Task(void const * argument)
+{
+  /* USER CODE BEGIN TBUS_Modbus_Transmit_Task */
+	uint16_t crc = 0;
+	volatile uint16_t count_registers = 0;
+	volatile uint16_t adr_of_registers = 0;
+	volatile uint16_t recieve_calculated_crc = 0;
+	volatile uint16_t recieve_actual_crc = 0;
+	volatile uint16_t outer_register = 0;
+	
+  /* Infinite loop */
+  for(;;)
+  {
+		xSemaphoreTake( Semaphore_TBUS_Modbus_Tx, portMAX_DELAY );
+		
+		//for (int i = 0; i < REG_COUNT*2+5; i++) transmitBuffer[i] = 0;
+		
+		if (TBUS_receiveBuffer[0] == SLAVE_ADR)
+		{		
+				recieve_calculated_crc = crc16(TBUS_receiveBuffer, 6);
+				recieve_actual_crc = (TBUS_receiveBuffer[7] << 8) + TBUS_receiveBuffer[6];
+				
+				//Если 16 функция, другая длина пакета
+				if (TBUS_receiveBuffer[1] == 0x10) 
+				{
+					recieve_calculated_crc = crc16(TBUS_receiveBuffer, 11);
+					recieve_actual_crc = (TBUS_receiveBuffer[12] << 8) + TBUS_receiveBuffer[11];
+				}
+				
+				//Проверяем crc
+				if (recieve_calculated_crc == recieve_actual_crc) 
+				{	
+						TBUS_transmitBuffer[0] = TBUS_receiveBuffer[0]; //адрес устр-ва			
+						TBUS_transmitBuffer[1] = TBUS_receiveBuffer[1]; //номер функции						
+					
+						adr_of_registers = (TBUS_receiveBuffer[2] << 8) + TBUS_receiveBuffer[3];//получаем адрес регистра				
+						count_registers = (TBUS_receiveBuffer[4] << 8) + TBUS_receiveBuffer[5]; //получаем кол-во регистров из запроса
+						outer_register = adr_of_registers + count_registers; //крайний регистр
+						
+						TBUS_transmitBuffer[2] = count_registers*2; //количество байт	(в два раза больше чем регистров)	
+					
+					
+//						//Проверяем номер регистра
+//						if (adr_of_registers > REG_COUNT) 
+//						{
+//									if (transmitBuffer[1] == 0x3) transmitBuffer[1] = 0x83; //Function Code in Exception Response
+//									if (transmitBuffer[1] == 0x4) transmitBuffer[1] = 0x84; //Function Code in Exception Response
+//									
+//									transmitBuffer[2] = 0x02; //Exception "Illegal Data Address"		
+//									
+//									crc = crc16(transmitBuffer, 3);
+//							
+//									transmitBuffer[3] = crc;
+//									transmitBuffer[4] = crc >> 8;		 
+//							
+//									HAL_UART_Transmit_DMA(&huart2, transmitBuffer, 5);									
+//						}					
+						
+						if (TBUS_receiveBuffer[1] == 0x03 || TBUS_receiveBuffer[1] == 0x04) //Holding Register (FC=03) or Input Register (FC=04)
+						{		
+									if (adr_of_registers < 125) //если кол-во регистров больше 125 (255 байт макс.), опрос идет несколькими запросами 
+									{							
+											for (volatile uint16_t i=adr_of_registers, j=0; i < outer_register; i++, j++)
+											{
+												TBUS_transmitBuffer[j*2+3] = settings[i] >> 8; //значение регистра Lo 		
+												TBUS_transmitBuffer[j*2+4] = settings[i] & 0x00FF; //значение регистра Hi		
+											}
+									
+											crc = crc16(TBUS_transmitBuffer, count_registers*2+3);				
+									
+											TBUS_transmitBuffer[count_registers*2+3] = crc;
+											TBUS_transmitBuffer[count_registers*2+3+1] = crc >> 8;		
+																				
+												
+											HAL_UART_Transmit_DMA(&huart3, TBUS_transmitBuffer, count_registers*2+5);
+									}
+									else
+									{
+											for (uint16_t i=0, j=0; i < count_registers; i++, j++)
+											{
+												TBUS_transmitBuffer[j*2+3] = settings[adr_of_registers + i] >> 8; //значение регистра Lo 		
+												TBUS_transmitBuffer[j*2+4] = settings[adr_of_registers + i] & 0x00FF; //значение регистра Hi		
+											}
+									
+											crc = crc16(TBUS_transmitBuffer, count_registers*2+3);				
+									
+											TBUS_transmitBuffer[count_registers*2+3] = crc;
+											TBUS_transmitBuffer[count_registers*2+3+1] = crc >> 8;		
+																				
+															
+											HAL_UART_Transmit_DMA(&huart3, TBUS_transmitBuffer, count_registers*2+5);					
+									}
+						}							
+						else if (TBUS_receiveBuffer[1] == 0x06) //Preset Single Register (FC=06)
+						{									
+							
+									settings[adr_of_registers] = (TBUS_receiveBuffer[4] << 8) + TBUS_receiveBuffer[5]; 										
+
+									TBUS_transmitBuffer[2] = TBUS_receiveBuffer[2];
+									TBUS_transmitBuffer[3] = TBUS_receiveBuffer[3];
+							
+									TBUS_transmitBuffer[4] = TBUS_receiveBuffer[4];
+									TBUS_transmitBuffer[5] = TBUS_receiveBuffer[5];
+							
+									crc = crc16(TBUS_transmitBuffer, 6);				
+							
+									TBUS_transmitBuffer[6] = crc;
+									TBUS_transmitBuffer[7] = crc >> 8;		
+																		
+							
+									HAL_UART_Transmit_DMA(&huart3, TBUS_transmitBuffer, 8);						
+						}				
+						else if (TBUS_receiveBuffer[1] == 0x10) //Preset Multiply Registers (FC=16)
+						{									
+							
+									settings[adr_of_registers] = (TBUS_receiveBuffer[7] << 8) + TBUS_receiveBuffer[8]; 										
+									settings[adr_of_registers+1] = (TBUS_receiveBuffer[9] << 8) + TBUS_receiveBuffer[10];
+									
+
+									TBUS_transmitBuffer[2] = TBUS_receiveBuffer[2];//адрес первого регистра
+									TBUS_transmitBuffer[3] = TBUS_receiveBuffer[3];
+							
+									TBUS_transmitBuffer[4] = TBUS_receiveBuffer[4];//кол-во регистров	
+									TBUS_transmitBuffer[5] = TBUS_receiveBuffer[5];
+								
+							
+									crc = crc16(TBUS_transmitBuffer, 6);				
+							
+									TBUS_transmitBuffer[6] = crc;
+									TBUS_transmitBuffer[7] = crc >> 8;		
+									
+							
+									HAL_UART_Transmit_DMA(&huart3, TBUS_transmitBuffer, 8);						
+						}
+						else
+						{							
+									TBUS_transmitBuffer[1] = 0x81; //Function Code in Exception Response
+									TBUS_transmitBuffer[2] = 0x01; //Exception "Illegal function"			
+									
+									crc = crc16(TBUS_transmitBuffer, 3);
+							
+									TBUS_transmitBuffer[3] = crc;
+									TBUS_transmitBuffer[4] = crc >> 8;		 
+							
+									HAL_UART_Transmit_DMA(&huart3, TBUS_transmitBuffer, 5);
+						}						
+				}	
+		}   
+  }
+  /* USER CODE END TBUS_Modbus_Transmit_Task */
 }
 
 /* Private application code --------------------------------------------------*/

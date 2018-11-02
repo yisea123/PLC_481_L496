@@ -142,6 +142,7 @@ extern uint16_t warming_up;
 extern float32_t power_supply_warning_lo;
 extern float32_t power_supply_warning_hi;
 
+extern float32_t baud_rate_uart_1;
 extern float32_t baud_rate_uart_2;
 extern float32_t baud_rate_uart_3;
 uint32_t boot_timer_counter;	
@@ -232,7 +233,10 @@ int main(void)
   SystemClock_Config();
 
   /* USER CODE BEGIN SysInit */
-
+	
+	//Читаем параметры и уставки из flash
+	read_init_settings();
+	
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
@@ -250,8 +254,7 @@ int main(void)
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
 
-	//Читаем параметры и уставки из flash
-	read_init_settings();
+
 
 	//Инициализация фильтров
 	FilterInit();
@@ -276,7 +279,8 @@ int main(void)
 //	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, GPIO_PIN_RESET);
 	
 	/* Enable the UART Transmit Complete Interrupt */ 
-	__HAL_UART_ENABLE_IT(&huart1, UART_IT_TC);	
+	//__HAL_UART_ENABLE_IT(&huart1, UART_IT_TC);	
+	
 	
 		
   /* USER CODE END 2 */
@@ -452,9 +456,9 @@ void read_init_settings(void)
 //			settings[i] = default_settings[i];			
 //	}	
 	
-	
+	baud_rate_uart_1 = convert_hex_to_float(&settings[0], 65);
 	baud_rate_uart_2 = convert_hex_to_float(&settings[0], 101);
-	baud_rate_uart_3 = convert_hex_to_float(&settings[0], 65);
+	baud_rate_uart_3 = convert_hex_to_float(&settings[0], 68);
 	
 	
 	//Преобразовываем значения из хранилища настроек в уставки/параметры (номер регистра из regmap - 1):			

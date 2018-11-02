@@ -44,12 +44,15 @@ extern xSemaphoreHandle Semaphore_Modbus_Tx;
 extern xSemaphoreHandle Semaphore_Master_Modbus_Rx;
 extern xSemaphoreHandle Semaphore_Master_Modbus_Tx;
 extern xSemaphoreHandle Semaphore_HART_Receive;
+extern xSemaphoreHandle Semaphore_TBUS_Modbus_Rx;
+extern xSemaphoreHandle Semaphore_TBUS_Modbus_Tx;
 extern uint8_t data_ready;
 extern uint8_t mode_operation;
 
 extern uint8_t adcdma_bunch; 
 extern uint16_t bunch_count_1;		
 extern uint16_t bunch_count_2;	
+
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
@@ -375,24 +378,24 @@ void USART2_IRQHandler(void)
 void USART3_IRQHandler(void)
 {
   /* USER CODE BEGIN USART3_IRQn 0 */
-//	if( (huart3.Instance->ISR & USART_ISR_IDLE) != RESET )
-//	{		
-//		
-//			__HAL_UART_CLEAR_IT(&huart3, UART_CLEAR_IDLEF);
-//			huart3.Instance->CR1 &= ~USART_CR1_IDLEIE;
-//					
-//			if( Semaphore_Master_Modbus_Rx != NULL )
-//			{
-//						static signed portBASE_TYPE xHigherPriorityTaskWoken;
-//						xHigherPriorityTaskWoken = pdFALSE;	
-//						//xSemaphoreGiveFromISR(Semaphore_Modbus_Rx_2, &xHigherPriorityTaskWoken);
-//						if( xHigherPriorityTaskWoken == pdTRUE )
-//						{
-//								portEND_SWITCHING_ISR(xHigherPriorityTaskWoken);
-//						}									
-//			}			
+	if( (huart3.Instance->ISR & USART_ISR_IDLE) != RESET )
+	{		
+		
+			__HAL_UART_CLEAR_IT(&huart3, UART_CLEAR_IDLEF);
+			huart3.Instance->CR1 &= ~USART_CR1_IDLEIE;
+					
+			if( Semaphore_TBUS_Modbus_Rx != NULL )
+			{
+						static signed portBASE_TYPE xHigherPriorityTaskWoken;
+						xHigherPriorityTaskWoken = pdFALSE;	
+						xSemaphoreGiveFromISR(Semaphore_TBUS_Modbus_Rx, &xHigherPriorityTaskWoken);
+						if( xHigherPriorityTaskWoken == pdTRUE )
+						{
+								portEND_SWITCHING_ISR(xHigherPriorityTaskWoken);
+						}									
+			}			
 
-//	}	
+	}	
   /* USER CODE END USART3_IRQn 0 */
   HAL_UART_IRQHandler(&huart3);
   /* USER CODE BEGIN USART3_IRQn 1 */

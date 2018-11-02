@@ -365,7 +365,7 @@
               <MiscControls></MiscControls>
               <Define>USE_HAL_DRIVER,STM32L496xx, ARM_MATH_CM4, __FPU_PRESENT</Define>
               <Undefine></Undefine>
-              <IncludePath>../Inc;           ../Drivers/STM32L4xx_HAL_Driver/Inc;           ../Drivers/STM32L4xx_HAL_Driver/Inc/Legacy;           ../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM4F;           ../Drivers/CMSIS/Device/ST/STM32L4xx/Include;           ../Middlewares/Third_Party/FreeRTOS/Source/include;           ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS;           ../Drivers/CMSIS/Include;           ..\Src\display</IncludePath>
+              <IncludePath>../Inc;                ../Drivers/STM32L4xx_HAL_Driver/Inc;                ../Drivers/STM32L4xx_HAL_Driver/Inc/Legacy;                ../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM4F;                ../Drivers/CMSIS/Device/ST/STM32L4xx/Include;                ../Middlewares/Third_Party/FreeRTOS/Source/include;                ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS;                ../Drivers/CMSIS/Include;                ..\Src\display</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
