@@ -53,6 +53,7 @@
 #include "adc.h"
 #include "dac.h"
 #include "dma.h"
+#include "iwdg.h"
 #include "spi.h"
 #include "tim.h"
 #include "usart.h"
@@ -252,6 +253,7 @@ int main(void)
   MX_TIM6_Init();
   MX_TIM7_Init();
   MX_TIM2_Init();
+  MX_IWDG_Init();
   /* USER CODE BEGIN 2 */
 
 
@@ -320,10 +322,12 @@ void SystemClock_Config(void)
 
     /**Initializes the CPU, AHB and APB busses clocks 
     */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI|RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI|RCC_OSCILLATORTYPE_LSI
+                              |RCC_OSCILLATORTYPE_HSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
   RCC_OscInitStruct.HSICalibrationValue = 64;
+  RCC_OscInitStruct.LSIState = RCC_LSI_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
   RCC_OscInitStruct.PLL.PLLM = 4;
@@ -457,8 +461,13 @@ void read_init_settings(void)
 //	}	
 	
 	baud_rate_uart_1 = convert_hex_to_float(&settings[0], 65);
+	if (baud_rate_uart_1 == 0) baud_rate_uart_1 = 115200;
+	
 	baud_rate_uart_2 = convert_hex_to_float(&settings[0], 101);
+	if (baud_rate_uart_2 == 0) baud_rate_uart_2 = 115200;
+	
 	baud_rate_uart_3 = convert_hex_to_float(&settings[0], 68);
+	if (baud_rate_uart_3 == 0) baud_rate_uart_3 = 115200;
 	
 	
 	//Преобразовываем значения из хранилища настроек в уставки/параметры (номер регистра из regmap - 1):			
@@ -522,7 +531,7 @@ void vApplicationIdleHook( void )
 
 	count_idle++;	
 	freeHeapSize = xPortGetFreeHeapSize();	
-	//HAL_IWDG_Refresh(&hiwdg);
+	HAL_IWDG_Refresh(&hiwdg);
 }
 
 void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef* hadc)

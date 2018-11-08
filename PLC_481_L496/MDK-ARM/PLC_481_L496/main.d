@@ -36,6 +36,7 @@ plc_481_l496\main.o: ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_flash_ex.
 plc_481_l496\main.o: ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_flash_ramfunc.h
 plc_481_l496\main.o: ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_i2c.h
 plc_481_l496\main.o: ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_i2c_ex.h
+plc_481_l496\main.o: ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_iwdg.h
 plc_481_l496\main.o: ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_pwr.h
 plc_481_l496\main.o: ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_pwr_ex.h
 plc_481_l496\main.o: ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_rtc.h
@@ -63,6 +64,7 @@ plc_481_l496\main.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/event_gr
 plc_481_l496\main.o: ../Inc/adc.h
 plc_481_l496\main.o: ../Inc/dac.h
 plc_481_l496\main.o: ../Inc/dma.h
+plc_481_l496\main.o: ../Inc/iwdg.h
 plc_481_l496\main.o: ../Inc/spi.h
 plc_481_l496\main.o: ../Inc/tim.h
 plc_481_l496\main.o: ../Inc/usart.h

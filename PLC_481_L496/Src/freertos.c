@@ -360,9 +360,9 @@ uint16_t menu_index_array[7];
 uint16_t menu_index_pointer = 0;
 uint16_t menu_vertical = 0;
 uint16_t menu_horizontal = 0;
-float32_t baud_rate_uart_1 = 0;	//master Ex (XP2)
-float32_t baud_rate_uart_2 = 0; //slave Ex (XP6)
-float32_t baud_rate_uart_3 = 0; //slave (TBUS)
+float32_t baud_rate_uart_1 = 115200;	//master Ex (XP2)
+float32_t baud_rate_uart_2 = 115200; //slave Ex (XP6)
+float32_t baud_rate_uart_3 = 115200; //slave (TBUS)
 uint8_t bootloader_state = 0;
 extern uint32_t boot_timer_counter;	
 uint16_t trigger_event_attribute = 0;
