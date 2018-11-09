@@ -218,7 +218,7 @@ void MX_FREERTOS_Init(void);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-
+	__disable_irq();
   /* USER CODE END 1 */
 
   /* MCU Configuration----------------------------------------------------------*/

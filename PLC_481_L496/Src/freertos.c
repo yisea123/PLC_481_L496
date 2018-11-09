@@ -495,6 +495,7 @@ void init_menu(uint8_t where_from);
 void save_settings(void);
 void edit_mode_from_list(float32_t *var, uint32_t* list);
 void turnover_counter(float32_t* input_array);
+void JumpToApplication(uint32_t ADDRESS);
 /* USER CODE END FunctionPrototypes */
 
 void StartDefaultTask(void const * argument);
@@ -3745,6 +3746,11 @@ void Modbus_Receive_Task(void const * argument)
 		{
 			HAL_UART_Receive_DMA(&huart2, receiveBuffer, 16);					
 			
+			if (receiveBuffer[1] == 0x62 && receiveBuffer[2] == 0x6F && receiveBuffer[3] == 0x6F && receiveBuffer[4] == 0x74)
+			{
+				JumpToApplication(BOOT_START_ADDRESS);
+			}
+			
 			xSemaphoreGive( Semaphore_Modbus_Tx );
 		}		
 		
@@ -3918,7 +3924,7 @@ void Modbus_Transmit_Task(void const * argument)
 				}
 				
 				//Команда для перепрошивки
-				if (receiveBuffer[1] == 0x62 && receiveBuffer[2] == 0x6F && receiveBuffer[3] == 0x6F && receiveBuffer[4] == 0x74 && boot_timer_counter == 0)
+				if (receiveBuffer[1] == 0x62 && receiveBuffer[2] == 0x6F && receiveBuffer[3] == 0x6F && receiveBuffer[4] == 0x74)
 				{					
 					
 					transmitBuffer[0] = 0x72;
@@ -3931,9 +3937,9 @@ void Modbus_Transmit_Task(void const * argument)
 					
 					bootloader_state = 1;		
 					
-					rtc_write_backup_reg(1, bootloader_state);
-					
-					NVIC_SystemReset();
+					JumpToApplication(BOOT_START_ADDRESS);
+					//rtc_write_backup_reg(1, bootloader_state);					
+					//NVIC_SystemReset();
 					
 					//receiveBuffer[1] = 0x00; boot_receiveBuffer[1] = 0x00;
 					
@@ -5625,9 +5631,21 @@ void turnover_counter(float32_t* input_array)
 		
 		pass_count = 0;
 	}	
-	else pass_count++;
-	
-	
+	else pass_count++;	
+}
+
+void JumpToApplication(uint32_t ADDRESS)
+{
+		typedef  void (*pFunction)(void);
+		uint32_t  JumpAddress = *(__IO uint32_t*)(ADDRESS + 4);
+    pFunction Jump = (pFunction)JumpAddress;
+        
+    HAL_DeInit();
+    
+    __set_CONTROL(0); 
+    __set_MSP(*(__IO uint32_t*) ADDRESS);
+		SCB->VTOR = ADDRESS;
+		Jump();		 
 }
 
 /* USER CODE END Application */

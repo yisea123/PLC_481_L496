@@ -136,7 +136,7 @@
 
 #define TIME_BREAK_SENSOR_485 15
 
-#define VERSION 5.04
+#define VERSION 5.05
 
 #define REG_485_QTY 40
 #define REG_485_START_ADDR 144
@@ -164,6 +164,14 @@ extern struct mb_master_delay_relay master_delay_relay_array[REG_485_QTY];
 
 #define BUTTON_SENSE 5 //Чувствительность нажатия на кнопку
 #define QUIT_TIMER 2 //Таймер нечувствительности (квитирование реле) 
+
+#define BOOT_START_ADDRESS 0x8004000
+#define BOOT_CRC_ADR 0x8003000
+#define BOOT_SIZE 0x8003FA0
+
+#define APP_START_ADDRESS 0x8010000
+#define APP_CRC_ADR 0x8003800
+#define APP_SIZE 0x8003020
 
 /* USER CODE END Private defines */
 
