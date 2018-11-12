@@ -195,6 +195,8 @@ extern uint16_t bunch_count_1;
 extern uint16_t bunch_count_2;		
 
 extern xSemaphoreHandle Semaphore_Acceleration;
+
+extern uint8_t worker_status;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -613,6 +615,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 					if (boot_timer_counter > 10) 
 					{
 						bootloader_state = 0;	
+						worker_status = 0x00;
 											
 						receiveBuffer[1] = 0x00;
 					}

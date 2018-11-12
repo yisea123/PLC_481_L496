@@ -100,7 +100,8 @@ xSemaphoreHandle 	Semaphore1, Semaphore2,
 									Semaphore_Relay_1, Semaphore_Relay_2,
 									Semaphore_HART_Receive, Semaphore_HART_Transmit,
 									Mutex_Setting,
-									Semaphore_TBUS_Modbus_Rx, Semaphore_TBUS_Modbus_Tx;
+									Semaphore_TBUS_Modbus_Rx, Semaphore_TBUS_Modbus_Tx, 
+									Semaphore_Bootloader_Update, Semaphore_Bootloader_Erase;
 									
 uint16_t raw_adc_value[RAW_ADC_BUFFER_SIZE];
 float32_t float_adc_value_ICP[ADC_BUFFER_SIZE];
@@ -446,6 +447,18 @@ volatile uint8_t adc_bunch = 0; //Индекс половинки буфера АЦП
 volatile uint16_t bunch_count_1 = 0;
 volatile uint16_t bunch_count_2 = 0;
 
+volatile uint32_t byte_size = 0;
+volatile uint16_t crc_data = 0;
+volatile uint16_t byte_bunch = 0;
+volatile uint32_t byte_counter = 0;
+volatile uint16_t crc_flash = 0;
+volatile uint64_t data = 0;
+uint8_t error_crc = 0;
+volatile uint8_t worker_status = 0;
+volatile uint8_t status = 0;
+volatile uint8_t status1 = 0;
+volatile uint8_t status2 = 0;
+volatile uint8_t status3 = 0;
 
 /* USER CODE END Variables */
 osThreadId defaultTaskHandle;
@@ -472,6 +485,8 @@ osThreadId myTask21Handle;
 osThreadId myTask22Handle;
 osThreadId myTask23Handle;
 osThreadId myTask24Handle;
+osThreadId myTask25Handle;
+osThreadId myTask26Handle;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -522,6 +537,8 @@ void HART_Receive_Task(void const * argument);
 void HART_Transmit_Task(void const * argument);
 void TBUS_Modbus_Receive_Task(void const * argument);
 void TBUS_Modbus_Transmit_Task(void const * argument);
+void Update_Bootloader_Task(void const * argument);
+void Erase_Bootloader_Task(void const * argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -632,6 +649,8 @@ void MX_FREERTOS_Init(void) {
 	Mutex_Setting = xSemaphoreCreateMutex();       
 	vSemaphoreCreateBinary(Semaphore_TBUS_Modbus_Rx);
 	vSemaphoreCreateBinary(Semaphore_TBUS_Modbus_Tx);
+	vSemaphoreCreateBinary(Semaphore_Bootloader_Update);
+	vSemaphoreCreateBinary(Semaphore_Bootloader_Erase);
   /* USER CODE END Init */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -742,6 +761,14 @@ void MX_FREERTOS_Init(void) {
   /* definition and creation of myTask24 */
   osThreadDef(myTask24, TBUS_Modbus_Transmit_Task, osPriorityNormal, 0, 128);
   myTask24Handle = osThreadCreate(osThread(myTask24), NULL);
+
+  /* definition and creation of myTask25 */
+  osThreadDef(myTask25, Update_Bootloader_Task, osPriorityNormal, 0, 128);
+  myTask25Handle = osThreadCreate(osThread(myTask25), NULL);
+
+  /* definition and creation of myTask26 */
+  osThreadDef(myTask26, Erase_Bootloader_Task, osPriorityNormal, 0, 128);
+  myTask26Handle = osThreadCreate(osThread(myTask26), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -1431,7 +1458,28 @@ void Display_Task(void const * argument)
 				
 				ssd1306_UpdateScreen();
 			}
-			else 
+			else if (bootloader_state == 1 && (worker_status == 1 || worker_status == 2 || worker_status == 3 || worker_status == 4) )
+			{					
+					ssd1306_Fill(0);
+					ssd1306_SetCursor(0,0);
+					ssd1306_WriteString("Обнов",font_8x15_RU,1);					
+					ssd1306_WriteString("-",font_8x14,1);					
+					ssd1306_SetCursor(0,15);	
+					ssd1306_WriteString("ление",font_8x15_RU,1);					
+					ssd1306_SetCursor(0,30);	
+					ssd1306_WriteString("ПО",font_8x15_RU,1);					
+					ssd1306_WriteString("...",font_8x14,1);
+					ssd1306_UpdateScreen();
+			}						
+			else if (bootloader_state == 1 && worker_status == 5)
+			{					
+					ssd1306_Fill(0);
+					ssd1306_SetCursor(0,15);
+					ssd1306_WriteString("УСПЕШНО",font_8x15_RU,1);										
+						
+					ssd1306_UpdateScreen();	
+			}			
+			else 				
 			{							
 					//Навигация по горизонтальному меню							
 					if (menu_index_pointer == 1) //ICP
@@ -3741,8 +3789,10 @@ void Modbus_Receive_Task(void const * argument)
 		__HAL_UART_ENABLE_IT(&huart2, UART_IT_IDLE);
 		
 		HAL_UART_DMAStop(&huart2); 
+
+
 		
-		if (bootloader_state == 0)
+		if (bootloader_state == 0x00)
 		{
 			HAL_UART_Receive_DMA(&huart2, receiveBuffer, 16);					
 			
@@ -3751,15 +3801,27 @@ void Modbus_Receive_Task(void const * argument)
 				JumpToApplication(BOOT_START_ADDRESS);
 			}
 			
-			xSemaphoreGive( Semaphore_Modbus_Tx );
-		}		
-		
-		if (bootloader_state == 1)
+			if (receiveBuffer[0] == 0x04 && receiveBuffer[1] == 0x08 && receiveBuffer[2] == 0x01 && receiveBuffer[7] == 0x01)
+			{
+				bootloader_state = 0x01;												
+			}			
+			else xSemaphoreGive( Semaphore_Modbus_Tx );
+		}
+
+		if (bootloader_state == 0x01)
 		{
-			boot_timer_counter = 0;			
+			boot_timer_counter = 0;					
 			
-			HAL_UART_Receive_DMA(&huart2, boot_receiveBuffer, 128);									
-		}	
+			HAL_UART_Receive_DMA(&huart2, boot_receiveBuffer, 8);		
+			
+			if (worker_status == 0)
+			{				
+				xSemaphoreGive( Semaphore_Bootloader_Erase );
+			}
+			else xSemaphoreGive( Semaphore_Bootloader_Update	 );
+		}			
+		
+
 		
 		
     
@@ -3923,28 +3985,28 @@ void Modbus_Transmit_Task(void const * argument)
 						
 				}
 				
-				//Команда для перепрошивки
-				if (receiveBuffer[1] == 0x62 && receiveBuffer[2] == 0x6F && receiveBuffer[3] == 0x6F && receiveBuffer[4] == 0x74)
-				{					
-					
-					transmitBuffer[0] = 0x72;
-					transmitBuffer[1] = 0x65;
-					transmitBuffer[2] = 0x61;
-					transmitBuffer[3] = 0x64;
-					transmitBuffer[4] = 0x79;
-										
-					HAL_UART_Transmit_DMA(&huart2, transmitBuffer, 5);
-					
-					bootloader_state = 1;		
-					
-					JumpToApplication(BOOT_START_ADDRESS);
-					//rtc_write_backup_reg(1, bootloader_state);					
-					//NVIC_SystemReset();
-					
-					//receiveBuffer[1] = 0x00; boot_receiveBuffer[1] = 0x00;
-					
-				}
-				else bootloader_state = 0;
+//				//Команда для перепрошивки
+//				if (receiveBuffer[1] == 0x62 && receiveBuffer[2] == 0x6F && receiveBuffer[3] == 0x6F && receiveBuffer[4] == 0x74)
+//				{					
+//					
+//					transmitBuffer[0] = 0x72;
+//					transmitBuffer[1] = 0x65;
+//					transmitBuffer[2] = 0x61;
+//					transmitBuffer[3] = 0x64;
+//					transmitBuffer[4] = 0x79;
+//										
+//					HAL_UART_Transmit_DMA(&huart2, transmitBuffer, 5);
+//					
+//					bootloader_state = 1;		
+//					
+//					JumpToApplication(BOOT_START_ADDRESS);
+//					//rtc_write_backup_reg(1, bootloader_state);					
+//					//NVIC_SystemReset();
+//					
+//					//receiveBuffer[1] = 0x00; boot_receiveBuffer[1] = 0x00;
+//					
+//				}
+//				else bootloader_state = 0;
 		}   
   }
   /* USER CODE END Modbus_Transmit_Task */
@@ -5055,6 +5117,152 @@ void TBUS_Modbus_Transmit_Task(void const * argument)
 		}   
   }
   /* USER CODE END TBUS_Modbus_Transmit_Task */
+}
+
+/* USER CODE BEGIN Header_Update_Bootloader_Task */
+/**
+* @brief Function implementing the myTask25 thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_Update_Bootloader_Task */
+void Update_Bootloader_Task(void const * argument)
+{
+  /* USER CODE BEGIN Update_Bootloader_Task */
+  /* Infinite loop */
+  for(;;)
+  {
+		xSemaphoreTake( Semaphore_Bootloader_Update, portMAX_DELAY );					
+
+	  data = ((uint64_t) boot_receiveBuffer[0]) + 
+					((uint64_t) (boot_receiveBuffer[1]) << 8) + 
+					((uint64_t) (boot_receiveBuffer[2]) << 16) + 
+					((uint64_t) (boot_receiveBuffer[3]) << 24) + 
+					((uint64_t) (boot_receiveBuffer[4]) << 32) + 
+					((uint64_t) (boot_receiveBuffer[5]) << 40) + 
+					((uint64_t) (boot_receiveBuffer[6]) << 48) + 
+					((uint64_t) (boot_receiveBuffer[7]) << 56);
+		
+		//Programm
+		if (worker_status == 0x04)
+		{			
+				status = HAL_FLASH_Unlock();							
+				//__HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_PGSERR);
+				status = HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, (BOOT_START_ADDRESS) + 8*byte_bunch, data);						
+				
+				HAL_FLASH_Lock();	
+				
+				byte_bunch++; byte_counter += 8;
+			
+				if (byte_counter >= byte_size) 
+				{
+					
+					crc_flash = flash_crc16(BOOT_START_ADDRESS, byte_size);
+					
+					if (crc_flash == crc_data)
+					{
+						
+						FLASH_EraseInitTypeDef EraseInitStruct;							
+						uint32_t PAGEError = 0;
+						EraseInitStruct.TypeErase = FLASH_TYPEERASE_PAGES;
+						EraseInitStruct.Banks = 1;
+						EraseInitStruct.Page = 6;
+						EraseInitStruct.NbPages = 1;					
+
+						
+						status = HAL_FLASH_Unlock();	
+						__HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_PGSERR);						
+						status1 = HAL_FLASHEx_Erase(&EraseInitStruct,&PAGEError);															
+						osDelay(5);
+											
+						status2 = HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, BOOT_CRC_ADR, crc_data);																	
+						osDelay(5);
+						
+						status3 = HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, BOOT_SIZE, byte_size);						
+						osDelay(5);					
+						
+						
+						HAL_FLASH_Lock();
+						
+						worker_status = 5;
+						osDelay(3000);	
+					}
+					
+					xSemaphoreGive( APP_START_ADDRESS );		
+				}
+											
+		}
+
+		//Get crc
+		if (worker_status == 0x03)
+		{
+				
+				crc_data = data;				
+				worker_status = 0x04;
+				byte_counter = 0;
+				byte_bunch = 0;
+				error_crc = 0;	
+		}
+		
+		//Get size
+		if (worker_status == 0x02)
+		{				
+				byte_size = data >> 32;				
+				worker_status = 0x03;
+				byte_counter = 0;
+				byte_bunch = 0;
+				error_crc = 0;	
+		}		
+		
+		if (worker_status == 0x01)
+		{				
+				worker_status = 0x02;			
+		}
+		
+	
+		//Зажечь светодиод
+		HAL_GPIO_WritePin(GPIOC, SD2_Pin, GPIO_PIN_SET);
+		osDelay(1);
+		HAL_GPIO_WritePin(GPIOC, SD2_Pin, GPIO_PIN_RESET);		
+  	
+  }
+  /* USER CODE END Update_Bootloader_Task */
+}
+
+/* USER CODE BEGIN Header_Erase_Bootloader_Task */
+/**
+* @brief Function implementing the myTask26 thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_Erase_Bootloader_Task */
+void Erase_Bootloader_Task(void const * argument)
+{
+  /* USER CODE BEGIN Erase_Bootloader_Task */
+  /* Infinite loop */
+  for(;;)
+  {		
+			xSemaphoreTake( Semaphore_Bootloader_Erase, portMAX_DELAY );					
+		
+			FLASH_EraseInitTypeDef EraseInitStruct;					
+			uint32_t PAGEError = 0;
+			EraseInitStruct.TypeErase = FLASH_TYPEERASE_PAGES;
+			EraseInitStruct.Banks = 1;
+			EraseInitStruct.Page = 8;
+			EraseInitStruct.NbPages = 24;
+		
+			status = HAL_FLASH_Unlock();	
+			osDelay(5);
+			//__HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_PGSERR);
+			
+			status = HAL_FLASHEx_Erase(&EraseInitStruct,&PAGEError);				
+			//status = HAL_FLASH_GetError();
+			
+			HAL_FLASH_Lock();	
+		
+			if (status == HAL_OK) worker_status = 0x01;
+  }
+  /* USER CODE END Erase_Bootloader_Task */
 }
 
 /* Private application code --------------------------------------------------*/
