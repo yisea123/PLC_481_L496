@@ -5178,13 +5178,15 @@ void Update_Bootloader_Task(void const * argument)
 						status2 = HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, BOOT_CRC_ADR, crc_data);																	
 						osDelay(5);
 						
+						
+						__HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_PGSERR);						
 						status3 = HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, BOOT_SIZE, byte_size);						
 						osDelay(5);					
 						
 						
 						HAL_FLASH_Lock();
 						
-						worker_status = 5;
+						if (status1 == 0 && status2 == 0 && status3 == 0) worker_status = 5;
 						osDelay(3000);	
 					}
 					
