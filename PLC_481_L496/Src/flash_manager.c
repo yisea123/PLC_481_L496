@@ -24,7 +24,7 @@ uint8_t write_flash(uint32_t page, uint16_t* data, uint32_t size)
 	EraseInitStruct.Page = page;	
 	EraseInitStruct.NbPages = 4;
 	
-	
+	__HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_PGSERR);
 	status = HAL_FLASH_Unlock();	
 	//osDelay(5);	
 	

@@ -136,7 +136,7 @@
 
 #define TIME_BREAK_SENSOR_485 15
 
-#define VERSION 5.08
+#define VERSION 5.09
 
 #define REG_485_QTY 40
 #define REG_485_START_ADDR 144

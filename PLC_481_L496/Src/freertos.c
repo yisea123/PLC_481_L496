@@ -3818,12 +3818,9 @@ void Modbus_Receive_Task(void const * argument)
 			{				
 				xSemaphoreGive( Semaphore_Bootloader_Erase );
 			}
-			else xSemaphoreGive( Semaphore_Bootloader_Update	 );
-		}			
-		
-
-		
-		
+			else xSemaphoreGive( Semaphore_Bootloader_Update	 );			
+			
+		}
     
   }
   /* USER CODE END Modbus_Receive_Task */
@@ -4442,7 +4439,7 @@ void Data_Storage_Task(void const * argument)
 
 			settings[100] = 10; 		
 			
-			settings[109] = 20000; 
+			settings[109] = 20000; 						
 			
 			convert_float_and_swap(22, &temp[0]);	
 			settings[110] = temp[0];
@@ -5146,8 +5143,10 @@ void Update_Bootloader_Task(void const * argument)
 		//Programm
 		if (worker_status == 0x04)
 		{			
+				//__HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_PGSERR);	
+			
 				status = HAL_FLASH_Unlock();							
-				//__HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_PGSERR);
+				
 				status = HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, (BOOT_START_ADDRESS) + 8*byte_bunch, data);						
 				
 				HAL_FLASH_Lock();	
@@ -5169,19 +5168,20 @@ void Update_Bootloader_Task(void const * argument)
 						EraseInitStruct.Page = 6;
 						EraseInitStruct.NbPages = 1;					
 
-						
+						__HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_PGSERR);					
 						status = HAL_FLASH_Unlock();	
-						__HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_PGSERR);						
+							
 						status1 = HAL_FLASHEx_Erase(&EraseInitStruct,&PAGEError);															
-						osDelay(5);
-											
+						osDelay(3);
+
+						__HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_PGSERR);											
 						status2 = HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, BOOT_CRC_ADR, crc_data);																	
-						osDelay(5);
+						osDelay(3);
 						
 						
 						__HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_PGSERR);						
 						status3 = HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, BOOT_SIZE, byte_size);						
-						osDelay(5);					
+						osDelay(3);					
 						
 						
 						HAL_FLASH_Lock();
@@ -5190,7 +5190,7 @@ void Update_Bootloader_Task(void const * argument)
 						osDelay(3000);	
 					}
 					
-					xSemaphoreGive( APP_START_ADDRESS );		
+					JumpToApplication( BOOT_START_ADDRESS );		
 				}
 											
 		}
@@ -5246,23 +5246,28 @@ void Erase_Bootloader_Task(void const * argument)
   {		
 			xSemaphoreTake( Semaphore_Bootloader_Erase, portMAX_DELAY );					
 		
-			FLASH_EraseInitTypeDef EraseInitStruct;					
-			uint32_t PAGEError = 0;
-			EraseInitStruct.TypeErase = FLASH_TYPEERASE_PAGES;
-			EraseInitStruct.Banks = 1;
-			EraseInitStruct.Page = 8;
-			EraseInitStruct.NbPages = 24;
-		
-			status = HAL_FLASH_Unlock();	
-			osDelay(5);
-			//__HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_PGSERR);
+			if (bootloader_state == 0x01)
+			{
+				FLASH_EraseInitTypeDef EraseInitStruct;					
+				uint32_t PAGEError = 0;
+				EraseInitStruct.TypeErase = FLASH_TYPEERASE_PAGES;
+				EraseInitStruct.Banks = 1;
+				EraseInitStruct.Page = 8;
+				EraseInitStruct.NbPages = 24;
 			
-			status = HAL_FLASHEx_Erase(&EraseInitStruct,&PAGEError);				
-			//status = HAL_FLASH_GetError();
+				__HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_PGSERR);
+				
+				status = HAL_FLASH_Unlock();	
+				osDelay(3);				
+							
+				status = HAL_FLASHEx_Erase(&EraseInitStruct,&PAGEError);				
+				
+				//status = HAL_FLASH_GetError();
+				
+				HAL_FLASH_Lock();	
 			
-			HAL_FLASH_Lock();	
-		
-			if (status == HAL_OK) worker_status = 0x01;
+				if (status == HAL_OK) worker_status = 0x01;
+			}
   }
   /* USER CODE END Erase_Bootloader_Task */
 }

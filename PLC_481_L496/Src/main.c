@@ -469,7 +469,7 @@ void read_init_settings(void)
 	if (baud_rate_uart_2 == 0) baud_rate_uart_2 = 115200;
 	
 	baud_rate_uart_3 = convert_hex_to_float(&settings[0], 68);
-	if (baud_rate_uart_3 == 0) baud_rate_uart_3 = 115200;
+	if (baud_rate_uart_3 == 0) baud_rate_uart_3 = 11520;
 	
 	
 	//Преобразовываем значения из хранилища настроек в уставки/параметры (номер регистра из regmap - 1):			
@@ -508,6 +508,8 @@ void read_init_settings(void)
 	
 	slave_adr = settings[100];	
 	warming_up = settings[109];
+	
+	
 
 	power_supply_warning_lo = convert_hex_to_float(&settings[0], 110);
 	power_supply_warning_hi = convert_hex_to_float(&settings[0], 112);

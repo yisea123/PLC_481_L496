@@ -3,7 +3,7 @@
 <title>Static Call Graph - [PLC_481_L496\PLC_481_L496.axf]</title></head>
 <body><HR>
 <H1>Static Call Graph for image PLC_481_L496\PLC_481_L496.axf</H1><HR>
-<BR><P>#&#060CALLGRAPH&#062# ARM Linker, 5050106: Last Updated: Mon Nov 12 14:54:20 2018
+<BR><P>#&#060CALLGRAPH&#062# ARM Linker, 5050106: Last Updated: Tue Nov 13 11:43:12 2018
 <BR><P>
 <H3>Maximum Stack Usage =        696 bytes + Unknown(Cycles, Untraceable Function Pointers)</H3><H3>
 Call chain for Maximum Stack Depth:</H3>
@@ -933,7 +933,7 @@ Global Symbols
 </UL>
 <BR>[Address Reference Count : 1]<UL><LI> freertos.o(.constdata)
 </UL>
-<P><STRONG><a name="[8c]"></a>Erase_Bootloader_Task</STRONG> (Thumb, 84 bytes, Stack size 24 bytes, freertos.o(i.Erase_Bootloader_Task))
+<P><STRONG><a name="[8c]"></a>Erase_Bootloader_Task</STRONG> (Thumb, 100 bytes, Stack size 24 bytes, freertos.o(i.Erase_Bootloader_Task))
 <BR><BR>[Stack]<UL><LI>Max Depth = 128<LI>Call Chain = Erase_Bootloader_Task &rArr; xQueueSemaphoreTake &rArr; xTaskResumeAll &rArr; xTaskIncrementTick
 </UL>
 <BR>[Calls]<UL><LI><a href="#[de]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HAL_FLASH_Unlock
@@ -1748,7 +1748,8 @@ Global Symbols
 </UL>
 <BR>[Calls]<UL><LI><a href="#[103]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HAL_DeInit
 </UL>
-<BR>[Called By]<UL><LI><a href="#[7f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Modbus_Receive_Task
+<BR>[Called By]<UL><LI><a href="#[8b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Update_Bootloader_Task
+<LI><a href="#[7f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Modbus_Receive_Task
 </UL>
 
 <P><STRONG><a name="[7b]"></a>Lights_Task</STRONG> (Thumb, 284 bytes, Stack size 0 bytes, freertos.o(i.Lights_Task))
@@ -2199,7 +2200,7 @@ Global Symbols
 <BR>[Address Reference Count : 1]<UL><LI> startup_stm32l496xx.o(RESET)
 </UL>
 <P><STRONG><a name="[8b]"></a>Update_Bootloader_Task</STRONG> (Thumb, 462 bytes, Stack size 24 bytes, freertos.o(i.Update_Bootloader_Task))
-<BR><BR>[Stack]<UL><LI>Max Depth = 136<LI>Call Chain = Update_Bootloader_Task &rArr; xQueueGenericSend &rArr; xTaskResumeAll &rArr; xTaskIncrementTick
+<BR><BR>[Stack]<UL><LI>Max Depth = 128<LI>Call Chain = Update_Bootloader_Task &rArr; xQueueSemaphoreTake &rArr; xTaskResumeAll &rArr; xTaskIncrementTick
 </UL>
 <BR>[Calls]<UL><LI><a href="#[de]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HAL_FLASH_Unlock
 <LI><a href="#[108]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HAL_FLASH_Program
@@ -2208,8 +2209,8 @@ Global Symbols
 <LI><a href="#[171]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;flash_crc16
 <LI><a href="#[ca]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HAL_GPIO_WritePin
 <LI><a href="#[b6]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;xQueueSemaphoreTake
-<LI><a href="#[bb]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;xQueueGenericSend
 <LI><a href="#[b5]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;osDelay
+<LI><a href="#[145]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;JumpToApplication
 </UL>
 <BR>[Address Reference Count : 1]<UL><LI> freertos.o(.constdata)
 </UL>
@@ -2547,7 +2548,7 @@ Global Symbols
 <BR>[Called By]<UL><LI><a href="#[192]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;prvInitialiseNewTask
 </UL>
 
-<P><STRONG><a name="[c5]"></a>read_init_settings</STRONG> (Thumb, 528 bytes, Stack size 8 bytes, main.o(i.read_init_settings))
+<P><STRONG><a name="[c5]"></a>read_init_settings</STRONG> (Thumb, 532 bytes, Stack size 8 bytes, main.o(i.read_init_settings))
 <BR><BR>[Stack]<UL><LI>Max Depth = 112<LI>Call Chain = read_init_settings &rArr; read_registers_from_flash &rArr; pvPortMalloc &rArr; xTaskResumeAll &rArr; xTaskIncrementTick
 </UL>
 <BR>[Calls]<UL><LI><a href="#[19d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;read_registers_from_flash
@@ -2918,7 +2919,7 @@ Global Symbols
 <BR>[Called By]<UL><LI><a href="#[8]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;PendSV_Handler
 </UL>
 
-<P><STRONG><a name="[1aa]"></a>write_flash</STRONG> (Thumb, 106 bytes, Stack size 48 bytes, flash_manager.o(i.write_flash))
+<P><STRONG><a name="[1aa]"></a>write_flash</STRONG> (Thumb, 110 bytes, Stack size 48 bytes, flash_manager.o(i.write_flash))
 <BR><BR>[Stack]<UL><LI>Max Depth = 120<LI>Call Chain = write_flash &rArr; HAL_FLASH_Program &rArr; FLASH_WaitForLastOperation
 </UL>
 <BR>[Calls]<UL><LI><a href="#[de]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HAL_FLASH_Unlock
@@ -3010,7 +3011,6 @@ Global Symbols
 </UL>
 <BR>[Called By]<UL><LI><a href="#[14d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;xQueueCreateMutex
 <LI><a href="#[75]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Velocity_Task
-<LI><a href="#[8b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Update_Bootloader_Task
 <LI><a href="#[84]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;TriggerLogic_Task
 <LI><a href="#[89]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;TBUS_Modbus_Receive_Task
 <LI><a href="#[7f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Modbus_Receive_Task
