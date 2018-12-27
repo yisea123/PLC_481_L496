@@ -3928,11 +3928,11 @@ void Modbus_Transmit_Task(void const * argument)
 						}							
 						else if (receiveBuffer[1] == 0x06) //Preset Single Register (FC=06)
 						{							
-									if (adr_of_registers < REG_485_START_ADDR)
+									if (adr_of_registers == 107)
 									{
 										settings[adr_of_registers] = (receiveBuffer[4] << 8) + receiveBuffer[5]; 										
 									}
-									else if (settings[107] == -7035) //Если изменяем регистры Master RS485, то надо снять блокировку (Рег.108 = 0xE485)
+									else if (settings[107] == -7035) //Если изменяем регистры, то надо снять блокировку (Рег.108 = 0xE485)
 									{
 										settings[adr_of_registers] = (receiveBuffer[4] << 8) + receiveBuffer[5]; 										
 									}
@@ -3953,12 +3953,12 @@ void Modbus_Transmit_Task(void const * argument)
 						}				
 						else if (receiveBuffer[1] == 0x10) //Preset Multiply Registers (FC=16)
 						{									
-									if (adr_of_registers < REG_485_START_ADDR)
+									if (adr_of_registers == 107)
 									{
 										settings[adr_of_registers] = (receiveBuffer[7] << 8) + receiveBuffer[8]; 										
 										settings[adr_of_registers+1] = (receiveBuffer[9] << 8) + receiveBuffer[10];
 									}
-									else if (settings[107] == -7035) //Если изменяем регистры Master RS485, то надо снять блокировку (Рег.108 = 0xE485)
+									else if (settings[107] == -7035) //Если изменяем регистры, то надо снять блокировку (Рег.108 = 0xE485)
 									{
 										settings[adr_of_registers] = (receiveBuffer[7] << 8) + receiveBuffer[8]; 										
 										settings[adr_of_registers+1] = (receiveBuffer[9] << 8) + receiveBuffer[10];										
@@ -5073,11 +5073,11 @@ void TBUS_Modbus_Transmit_Task(void const * argument)
 						}							
 						else if (TBUS_receiveBuffer[1] == 0x06 && menu_edit_mode == 0) //Preset Single Register (FC=06)
 						{									
-									if (adr_of_registers < REG_485_START_ADDR)
+									if (adr_of_registers == 107)
 									{
 										settings[adr_of_registers] = (TBUS_receiveBuffer[4] << 8) + TBUS_receiveBuffer[5]; 										
 									}
-									else if (settings[107] == -7035) //Если изменяем регистры Master RS485, то надо снять блокировку (Рег.108 = 0xE485)
+									else if (settings[107] == -7035) //Если изменяем регистры, то надо снять блокировку (Рег.108 = 0xE485)
 									{
 										settings[adr_of_registers] = (TBUS_receiveBuffer[4] << 8) + TBUS_receiveBuffer[5]; 										
 									}
@@ -5100,12 +5100,12 @@ void TBUS_Modbus_Transmit_Task(void const * argument)
 						else if (TBUS_receiveBuffer[1] == 0x10 && menu_edit_mode == 0) //Preset Multiply Registers (FC=16)
 						{									
 							
-									if (adr_of_registers < REG_485_START_ADDR)
+									if (adr_of_registers == 107)
 									{
 										settings[adr_of_registers] = (TBUS_receiveBuffer[7] << 8) + TBUS_receiveBuffer[8]; 										
 										settings[adr_of_registers+1] = (TBUS_receiveBuffer[9] << 8) + TBUS_receiveBuffer[10];
 									}
-									else if (settings[107] == -7035) //Если изменяем регистры Master RS485, то надо снять блокировку (Рег.108 = 0xE485)
+									else if (settings[107] == -7035) //Если изменяем регистры, то надо снять блокировку (Рег.108 = 0xE485)
 									{
 										settings[adr_of_registers] = (TBUS_receiveBuffer[7] << 8) + TBUS_receiveBuffer[8]; 										
 										settings[adr_of_registers+1] = (TBUS_receiveBuffer[9] << 8) + TBUS_receiveBuffer[10];
