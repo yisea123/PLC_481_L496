@@ -3927,9 +3927,15 @@ void Modbus_Transmit_Task(void const * argument)
 									}
 						}							
 						else if (receiveBuffer[1] == 0x06) //Preset Single Register (FC=06)
-						{									
-							
-									settings[adr_of_registers] = (receiveBuffer[4] << 8) + receiveBuffer[5]; 										
+						{							
+									if (adr_of_registers < REG_485_START_ADDR)
+									{
+										settings[adr_of_registers] = (receiveBuffer[4] << 8) + receiveBuffer[5]; 										
+									}
+									else if (settings[107] == -7035) //Если изменяем регистры Master RS485, то надо снять блокировку (Рег.108 = 0xE485)
+									{
+										settings[adr_of_registers] = (receiveBuffer[4] << 8) + receiveBuffer[5]; 										
+									}
 
 									transmitBuffer[2] = receiveBuffer[2];
 									transmitBuffer[3] = receiveBuffer[3];
@@ -3947,9 +3953,16 @@ void Modbus_Transmit_Task(void const * argument)
 						}				
 						else if (receiveBuffer[1] == 0x10) //Preset Multiply Registers (FC=16)
 						{									
-							
-									settings[adr_of_registers] = (receiveBuffer[7] << 8) + receiveBuffer[8]; 										
-									settings[adr_of_registers+1] = (receiveBuffer[9] << 8) + receiveBuffer[10];
+									if (adr_of_registers < REG_485_START_ADDR)
+									{
+										settings[adr_of_registers] = (receiveBuffer[7] << 8) + receiveBuffer[8]; 										
+										settings[adr_of_registers+1] = (receiveBuffer[9] << 8) + receiveBuffer[10];
+									}
+									else if (settings[107] == -7035) //Если изменяем регистры Master RS485, то надо снять блокировку (Рег.108 = 0xE485)
+									{
+										settings[adr_of_registers] = (receiveBuffer[7] << 8) + receiveBuffer[8]; 										
+										settings[adr_of_registers+1] = (receiveBuffer[9] << 8) + receiveBuffer[10];										
+									}
 									
 
 									transmitBuffer[2] = receiveBuffer[2];//адрес первого регистра
@@ -4356,7 +4369,7 @@ void Data_Storage_Task(void const * argument)
 
 
 		//Применение/запись настроек + запись метрологических коэф.
-		if (settings[107] == 481) //0x1E1 int16
+		if (settings[107] == 481) //0x1E1 int16 Big Endian (AB)
 		{		
 			
 			//xSemaphoreTake( Mutex_Setting, portMAX_DELAY );
@@ -4377,7 +4390,7 @@ void Data_Storage_Task(void const * argument)
 		
 		
 		//Применение/запись настроек без метрологии 
-		if (settings[107] == -21555) //0xABCD int16
+		if (settings[107] == -21555) //0xABCD int16 Big Endian (AB)
 		{		
 			
 			//xSemaphoreTake( Mutex_Setting, portMAX_DELAY );
@@ -4421,7 +4434,7 @@ void Data_Storage_Task(void const * argument)
 		}
 		
 		//Сброс настроек
-		if (settings[108] == -9030 || (menu_edit_mode == 0 && reset_to_default == 1)) //0xDCBA int16
+		if (settings[108] == -9030 || (menu_edit_mode == 0 && reset_to_default == 1)) //0xDCBA int16 Big Endian (AB)
 		{
 			settings[108] = 0x0;
 			
@@ -4464,7 +4477,8 @@ void Data_Storage_Task(void const * argument)
 
 			NVIC_SystemReset();	
 		}
-
+		
+		
     osDelay(100);
   }
   /* USER CODE END Data_Storage_Task */
@@ -5057,10 +5071,17 @@ void TBUS_Modbus_Transmit_Task(void const * argument)
 											HAL_UART_Transmit_DMA(&huart3, TBUS_transmitBuffer, count_registers*2+5);					
 									}
 						}							
-						else if (TBUS_receiveBuffer[1] == 0x06) //Preset Single Register (FC=06)
+						else if (TBUS_receiveBuffer[1] == 0x06 && menu_edit_mode == 0) //Preset Single Register (FC=06)
 						{									
-							
-									settings[adr_of_registers] = (TBUS_receiveBuffer[4] << 8) + TBUS_receiveBuffer[5]; 										
+									if (adr_of_registers < REG_485_START_ADDR)
+									{
+										settings[adr_of_registers] = (TBUS_receiveBuffer[4] << 8) + TBUS_receiveBuffer[5]; 										
+									}
+									else if (settings[107] == -7035) //Если изменяем регистры Master RS485, то надо снять блокировку (Рег.108 = 0xE485)
+									{
+										settings[adr_of_registers] = (TBUS_receiveBuffer[4] << 8) + TBUS_receiveBuffer[5]; 										
+									}
+										
 
 									TBUS_transmitBuffer[2] = TBUS_receiveBuffer[2];
 									TBUS_transmitBuffer[3] = TBUS_receiveBuffer[3];
@@ -5076,11 +5097,19 @@ void TBUS_Modbus_Transmit_Task(void const * argument)
 							
 									HAL_UART_Transmit_DMA(&huart3, TBUS_transmitBuffer, 8);						
 						}				
-						else if (TBUS_receiveBuffer[1] == 0x10) //Preset Multiply Registers (FC=16)
+						else if (TBUS_receiveBuffer[1] == 0x10 && menu_edit_mode == 0) //Preset Multiply Registers (FC=16)
 						{									
 							
-									settings[adr_of_registers] = (TBUS_receiveBuffer[7] << 8) + TBUS_receiveBuffer[8]; 										
-									settings[adr_of_registers+1] = (TBUS_receiveBuffer[9] << 8) + TBUS_receiveBuffer[10];
+									if (adr_of_registers < REG_485_START_ADDR)
+									{
+										settings[adr_of_registers] = (TBUS_receiveBuffer[7] << 8) + TBUS_receiveBuffer[8]; 										
+										settings[adr_of_registers+1] = (TBUS_receiveBuffer[9] << 8) + TBUS_receiveBuffer[10];
+									}
+									else if (settings[107] == -7035) //Если изменяем регистры Master RS485, то надо снять блокировку (Рег.108 = 0xE485)
+									{
+										settings[adr_of_registers] = (TBUS_receiveBuffer[7] << 8) + TBUS_receiveBuffer[8]; 										
+										settings[adr_of_registers+1] = (TBUS_receiveBuffer[9] << 8) + TBUS_receiveBuffer[10];
+									}										
 									
 
 									TBUS_transmitBuffer[2] = TBUS_receiveBuffer[2];//адрес первого регистра
