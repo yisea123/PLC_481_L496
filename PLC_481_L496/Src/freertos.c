@@ -4280,7 +4280,11 @@ void Data_Storage_Task(void const * argument)
 		settings[76] = temp[0];
 		settings[77] = temp[1];	
 		
-		convert_float_and_swap((mb_master_request - mb_master_response), &temp[0]);	
+		if ( mb_master_request > mb_master_response )
+			convert_float_and_swap((mb_master_request - mb_master_response), &temp[0]);				
+		else 
+			convert_float_and_swap(0, &temp[0]);				
+		
 		settings[78] = temp[0];
 		settings[79] = temp[1];	
 
