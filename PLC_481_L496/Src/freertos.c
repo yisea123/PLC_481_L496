@@ -288,6 +288,12 @@ volatile TickType_t xTimeOutBefore, xTotalTimeOutSuspended;
 uint16_t trigger_485_event_attribute_warning = 0;
 uint16_t trigger_485_event_attribute_emerg = 0;
 
+uint32_t trigger_485_event_attribute_xtd1 = 0;
+uint32_t trigger_485_event_attribute_xtd2 = 0;
+uint32_t trigger_485_event_attribute_xtd3 = 0;
+
+uint32_t trigger_485_ZSK = 0; 
+
 //Реле
 uint8_t state_emerg_relay = 0;
 uint8_t state_warning_relay = 0;
@@ -367,6 +373,7 @@ float32_t baud_rate_uart_3 = 115200; //slave (TBUS)
 uint8_t bootloader_state = 0;
 extern uint32_t boot_timer_counter;	
 uint16_t trigger_event_attribute = 0;
+uint32_t trigger_485_mode_2 = 0;
 
 
 uint16_t channel_ICP_ON = 0;
@@ -4281,9 +4288,13 @@ void Data_Storage_Task(void const * argument)
 		settings[77] = temp[1];	
 		
 		if ( mb_master_request > mb_master_response )
+		{
 			convert_float_and_swap((mb_master_request - mb_master_response), &temp[0]);				
+		}
 		else 
+		{
 			convert_float_and_swap(0, &temp[0]);				
+		}
 		
 		settings[78] = temp[0];
 		settings[79] = temp[1];	
@@ -4375,10 +4386,8 @@ void Data_Storage_Task(void const * argument)
 		//Применение/запись настроек + запись метрологических коэф.
 		if (settings[107] == 481) //0x1E1 int16 Big Endian (AB)
 		{		
-			
-			//xSemaphoreTake( Mutex_Setting, portMAX_DELAY );
-						
-			settings[107] = 0x0;
+									
+			settings[107] = 0x00;
 			
 			taskENTER_CRITICAL(); 						
 			st_flash = write_registers_to_flash(settings);						
@@ -4396,10 +4405,8 @@ void Data_Storage_Task(void const * argument)
 		//Применение/запись настроек без метрологии 
 		if (settings[107] == -21555) //0xABCD int16 Big Endian (AB)
 		{		
-			
-			//xSemaphoreTake( Mutex_Setting, portMAX_DELAY );
 						
-			settings[107] = 0x0;			
+			settings[107] = 0x00;			
 
 			convert_float_and_swap(icp_coef_K, &temp[0]);			
 			settings[15] = temp[0];  
@@ -4631,7 +4638,7 @@ void TriggerLogic_Task(void const * argument)
 				if (channel_485_ON == 1)
 				{		
 
-						for (volatile uint8_t i = 0; i< REG_485_QTY; i++)
+						for (uint8_t i = 0; i< REG_485_QTY; i++)
 						{
 								if (master_array[i].master_on == 1)
 								{			
@@ -4685,6 +4692,123 @@ void TriggerLogic_Task(void const * argument)
 						}		
 						
 				}
+				
+				
+				if (channel_485_ON == 2) //Специальный режим работы для системы ЗСК
+				{
+					
+						for (uint8_t i = 0; i< REG_485_QTY; i++)
+						{
+								if (master_array[i].master_on == 1)
+								{			
+									
+										//Нижняя предупредительная уставка
+										if (master_array[i].master_value >= master_array[i].low_master_warning_set || break_sensor_485 == 1) 
+										{
+											trigger_485_event_attribute_xtd1 |= (1<<(31-i));
+											
+											if (i == 0 | i == 1 | i == 2) trigger_485_ZSK |= (1<<0);
+											if (i == 3 | i == 4 | i == 5) trigger_485_ZSK |= (1<<1);
+											if (i == 6 | i == 7 | i == 8) trigger_485_ZSK |= (1<<2);
+											if (i == 9 | i == 10 | i == 11) trigger_485_ZSK |= (1<<3);
+											if (i == 12 | i == 13 | i == 14) trigger_485_ZSK |= (1<<4);											
+											
+										}	
+										else if (master_array[i].master_value < master_array[i].low_master_warning_set) 						
+										{
+											if (mode_relay == 0) trigger_485_event_attribute_xtd1 &= ~(1<<(31-i));	
+										}									
+									
+									
+										//Предупредительная уставка
+										if (master_array[i].master_value >= master_array[i].master_warning_set || break_sensor_485 == 1) 
+										{
+											
+											master_delay_relay_array[i].flag_delay_relay_1 = 1;
+											
+											if (master_delay_relay_array[i].relay_permission_1 == 1)
+											{
+												trigger_485_event_attribute_xtd2 |= (1<<(31-i));		
+
+												
+												if (i == 0 | i == 1 | i == 2) trigger_485_ZSK |= (1<<5);
+												if (i == 3 | i == 4 | i == 5) trigger_485_ZSK |= (1<<6);
+												if (i == 6 | i == 7 | i == 8) trigger_485_ZSK |= (1<<7);
+												if (i == 9 | i == 10 | i == 11) trigger_485_ZSK |= (1<<8);
+												if (i == 12 | i == 13 | i == 14) trigger_485_ZSK |= (1<<9);														
+												if (i == 15 | i == 16 | i == 17) trigger_485_ZSK |= (1<<25);		
+
+												
+												state_warning_relay = 1;
+												flag_for_delay_relay_exit = 1;							
+												xSemaphoreGive( Semaphore_Relay_1 );							
+											}
+										}	
+										else if (master_array[i].master_value < master_array[i].master_warning_set || master_array[i].master_value > master_array[i].low_master_warning_set) 						
+										{
+											if (mode_relay == 0) trigger_485_event_attribute_xtd2 &= ~(1<<(31-i));								
+
+											master_delay_relay_array[i].timer_delay_relay_1 = 0;
+											master_delay_relay_array[i].relay_permission_1 = 0;	
+											master_delay_relay_array[i].flag_delay_relay_1 = 0;											
+										}
+										
+										//Аварийная уставка
+										if (master_array[i].master_value >= master_array[i].master_emergency_set || break_sensor_485 == 1) 
+										{											
+											master_delay_relay_array[i].flag_delay_relay_2 = 1;
+											
+											if (master_delay_relay_array[i].relay_permission_2 == 1)
+											{
+												trigger_485_event_attribute_xtd3 |= (1<<(31-i));		
+
+												
+												if (i == 0) trigger_485_ZSK |= (1<<10);
+												if (i == 1) trigger_485_ZSK |= (1<<11);
+												if (i == 2) trigger_485_ZSK |= (1<<12);
+												
+												if (i == 3) trigger_485_ZSK |= (1<<13);
+												if (i == 4) trigger_485_ZSK |= (1<<14);
+												if (i == 5) trigger_485_ZSK |= (1<<15);
+												
+												if (i == 6) trigger_485_ZSK |= (1<<16);
+												if (i == 7) trigger_485_ZSK |= (1<<17);
+												if (i == 8) trigger_485_ZSK |= (1<<18);
+												
+												if (i == 9) trigger_485_ZSK |= (1<<19);
+												if (i == 10) trigger_485_ZSK |= (1<<20);
+												if (i == 11) trigger_485_ZSK |= (1<<21);												
+												
+												if (i == 12) trigger_485_ZSK |= (1<<22);
+												if (i == 13) trigger_485_ZSK |= (1<<23);
+												if (i == 14) trigger_485_ZSK |= (1<<24);																								
+												
+												
+												if (i == 15) trigger_485_ZSK |= (1<<26);
+												if (i == 16) trigger_485_ZSK |= (1<<27);
+												if (i == 17) trigger_485_ZSK |= (1<<28);																								
+
+												
+												state_emerg_relay = 1;
+												flag_for_delay_relay_exit = 1;							
+												xSemaphoreGive( Semaphore_Relay_2 );							
+											}
+										}	
+										else if (master_array[i].master_value < master_array[i].master_emergency_set || master_array[i].master_value > master_array[i].low_master_emergency_set)						
+										{
+											if (mode_relay == 0) trigger_485_event_attribute_xtd3 &= ~(1<<(31-i));		
+
+											master_delay_relay_array[i].timer_delay_relay_2 = 0;
+											master_delay_relay_array[i].relay_permission_2 = 0;	
+											master_delay_relay_array[i].flag_delay_relay_2 = 0; 											
+										}										
+										
+
+								}
+						}							
+						
+				}					
+				
 				
 				if (mode_relay == 0)
 				{
