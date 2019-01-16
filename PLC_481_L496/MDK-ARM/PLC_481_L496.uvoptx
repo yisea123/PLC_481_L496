@@ -172,37 +172,37 @@
         <Ww>
           <count>0</count>
           <WinNumber>2</WinNumber>
-          <ItemText>menu_edit_mode</ItemText>
+          <ItemText>ZSK_trigger_array</ItemText>
         </Ww>
         <Ww>
           <count>1</count>
           <WinNumber>2</WinNumber>
-          <ItemText>adr_of_registers</ItemText>
+          <ItemText>master_array</ItemText>
         </Ww>
         <Ww>
           <count>2</count>
           <WinNumber>2</WinNumber>
-          <ItemText>settings[107]</ItemText>
+          <ItemText>trigger_485_ZSK</ItemText>
         </Ww>
         <Ww>
           <count>3</count>
           <WinNumber>2</WinNumber>
-          <ItemText>mb_master_request,0x0A</ItemText>
+          <ItemText>xxx</ItemText>
         </Ww>
         <Ww>
           <count>4</count>
           <WinNumber>2</WinNumber>
-          <ItemText>mb_master_response,0x0A</ItemText>
+          <ItemText>yyy</ItemText>
         </Ww>
         <Ww>
           <count>5</count>
           <WinNumber>2</WinNumber>
-          <ItemText>mb_master_request - mb_master_response,0x10</ItemText>
+          <ItemText>zzz</ItemText>
         </Ww>
         <Ww>
           <count>6</count>
           <WinNumber>2</WinNumber>
-          <ItemText>trigger_485_ZSK</ItemText>
+          <ItemText>trigger_485_ZSK_percent</ItemText>
         </Ww>
       </WatchWindow2>
       <MemoryWindow1>
