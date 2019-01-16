@@ -475,6 +475,8 @@ volatile uint8_t status1 = 0;
 volatile uint8_t status2 = 0;
 volatile uint8_t status3 = 0;
 
+float32_t zsk_average_array[ZSK_REG_485_QTY][ZSK_AVERAGE_WINDOW];
+
 /* USER CODE END Variables */
 osThreadId defaultTaskHandle;
 osThreadId myTask02Handle;
@@ -2495,7 +2497,7 @@ void Display_Task(void const * argument)
 					}
 					
 //////////485 menu		
-					if (channel_485_ON == 1)
+					if ( (channel_485_ON == 1) || (channel_485_ON == 2) )
 					{
 						
 							
@@ -2505,6 +2507,11 @@ void Display_Task(void const * argument)
 								ssd1306_Fill(0);
 								ssd1306_SetCursor(0,0);												
 								ssd1306_WriteString("485",font_8x14,1);		
+								if (channel_485_ON == 2) 
+								{
+									ssd1306_SetCursor(30,0);												
+									ssd1306_WriteString("ЗСК",font_8x15_RU,1);		
+								}
 								
 								if (menu_edit_settings_mode == 0)
 								{									
@@ -4713,16 +4720,38 @@ void TriggerLogic_Task(void const * argument)
 						{
 								if (master_array[i].master_on == 1)
 								{			
+										//Расчитываем скользящее среднее и перезаписываем значение с учетом усреднения
+										if(MOVING_AVERAGE == 1)
+										{											
+												float32_t average_result = 0.0;
+												
+												//Сдвигаем массив для записи нового элемента
+												for (int y = 1; y < ZSK_AVERAGE_WINDOW; y++)				
+												{
+														zsk_average_array[i][y-1] = zsk_average_array[i][y];
+												}
+												
+												//Записываем новое значение 
+												zsk_average_array[i][ZSK_AVERAGE_WINDOW - 1] = master_array[i].master_value;
+												
+												//Расчитываем среднее
+												for (int j = 0; j < ZSK_AVERAGE_WINDOW; j++)				
+												{
+														average_result += zsk_average_array[i][j] / ZSK_AVERAGE_WINDOW;
+												}
+												
+												master_array[i].master_value = average_result;											
+										}
 									
 										//Нижняя предупредительная уставка
 										if (master_array[i].master_value >= master_array[i].low_master_warning_set || break_sensor_485 == 1) 
 										{											
 											
-											if (i == 0 | i == 1 | i == 2) trigger_485_ZSK |= (1<<0);
-											if (i == 3 | i == 4 | i == 5) trigger_485_ZSK |= (1<<1);											
-											if (i == 6 | i == 7 | i == 8) trigger_485_ZSK |= (1<<2);											
-											if (i == 9 | i == 10 | i == 11) trigger_485_ZSK |= (1<<3);
-											if (i == 12 | i == 13 | i == 14) trigger_485_ZSK |= (1<<4);														
+											if (i == 0 || i == 1 || i == 2) trigger_485_ZSK |= (1<<0);
+											if (i == 3 || i == 4 || i == 5) trigger_485_ZSK |= (1<<1);											
+											if (i == 6 || i == 7 || i == 8) trigger_485_ZSK |= (1<<2);											
+											if (i == 9 || i == 10 || i == 11) trigger_485_ZSK |= (1<<3);
+											if (i == 12 || i == 13 || i == 14) trigger_485_ZSK |= (1<<4);														
 
 										}	
 								
@@ -4737,12 +4766,12 @@ void TriggerLogic_Task(void const * argument)
 											if (master_delay_relay_array[i].relay_permission_1 == 1)
 											{
 												
-												if (i == 0 | i == 1 | i == 2) trigger_485_ZSK |= (1<<5);
-												if (i == 3 | i == 4 | i == 5) trigger_485_ZSK |= (1<<6);
-												if (i == 6 | i == 7 | i == 8) trigger_485_ZSK |= (1<<7);
-												if (i == 9 | i == 10 | i == 11) trigger_485_ZSK |= (1<<8);
-												if (i == 12 | i == 13 | i == 14) trigger_485_ZSK |= (1<<9);														
-												if (i == 15 | i == 16 | i == 17) trigger_485_ZSK |= (1<<25);		
+												if (i == 0 || i == 1 || i == 2) trigger_485_ZSK |= (1<<5);
+												if (i == 3 || i == 4 || i == 5) trigger_485_ZSK |= (1<<6);
+												if (i == 6 || i == 7 || i == 8) trigger_485_ZSK |= (1<<7);
+												if (i == 9 || i == 10 || i == 11) trigger_485_ZSK |= (1<<8);
+												if (i == 12 || i == 13 || i == 14) trigger_485_ZSK |= (1<<9);														
+												if (i == 15 || i == 16 || i == 17) trigger_485_ZSK |= (1<<25);		
 												
 												
 												state_warning_relay = 1;
@@ -4750,7 +4779,7 @@ void TriggerLogic_Task(void const * argument)
 												xSemaphoreGive( Semaphore_Relay_1 );							
 											}
 										}	
-										else if (master_array[i].master_value < master_array[i].master_warning_set || master_array[i].master_value > master_array[i].low_master_warning_set) 						
+										else if (master_array[i].master_value < master_array[i].master_warning_set) 						
 										{
 											master_delay_relay_array[i].timer_delay_relay_1 = 0;
 											master_delay_relay_array[i].relay_permission_1 = 0;	
@@ -4791,34 +4820,34 @@ void TriggerLogic_Task(void const * argument)
 												if (i == 17) trigger_485_ZSK |= (1<<28);																								
 
 												
-												if ( trigger_485_ZSK & ((1<<26) | (1<<27) | (1<<28)) )
+												if ( ((trigger_485_ZSK & (1<<26)) != 0) || ((trigger_485_ZSK & (1<<27)) != 0) || ((trigger_485_ZSK & (1<<28)) != 0)  )
 												{
 													state_emerg_relay = 1;
 													flag_for_delay_relay_exit = 1;	
 													xSemaphoreGive( Semaphore_Relay_2 );							
 												}
 												
-												//Расклад по осям	
-												x_axis = (((trigger_485_ZSK & (1<<10)) != 0) |
-												((trigger_485_ZSK & (1<<13)) != 0) |
-												((trigger_485_ZSK & (1<<16)) != 0) |
-												((trigger_485_ZSK & (1<<19)) != 0) |
+												//Проверка на срабатывание по осям	
+												x_axis = (((trigger_485_ZSK & (1<<10)) != 0) ||
+												((trigger_485_ZSK & (1<<13)) != 0) ||
+												((trigger_485_ZSK & (1<<16)) != 0) ||
+												((trigger_485_ZSK & (1<<19)) != 0) ||
 												((trigger_485_ZSK & (1<<22)) != 0));
 												
-												y_axis = (((trigger_485_ZSK & (1<<11)) != 0) |
-												((trigger_485_ZSK & (1<<14)) != 0) |
-												((trigger_485_ZSK & (1<<17)) != 0) |
-												((trigger_485_ZSK & (1<<20)) != 0) |
+												y_axis = (((trigger_485_ZSK & (1<<11)) != 0) ||
+												((trigger_485_ZSK & (1<<14)) != 0) ||
+												((trigger_485_ZSK & (1<<17)) != 0) ||
+												((trigger_485_ZSK & (1<<20)) != 0) ||
 												((trigger_485_ZSK & (1<<23)) != 0));
 												
-												z_axis = (((trigger_485_ZSK & (1<<12)) != 0) |
-												((trigger_485_ZSK & (1<<15)) != 0) |
-												((trigger_485_ZSK & (1<<18)) != 0) |
-												((trigger_485_ZSK & (1<<21)) != 0) |
+												z_axis = (((trigger_485_ZSK & (1<<12)) != 0) ||
+												((trigger_485_ZSK & (1<<15)) != 0) ||
+												((trigger_485_ZSK & (1<<18)) != 0) ||
+												((trigger_485_ZSK & (1<<21)) != 0) ||
 												((trigger_485_ZSK & (1<<24)) != 0));												
 												
 
-												if ( (x_axis & y_axis) |  (x_axis & z_axis) | (y_axis & z_axis) )												
+												if ( (x_axis & y_axis) ||  (x_axis & z_axis) || (y_axis & z_axis) )												
 												{
 													state_emerg_relay = 1;
 													flag_for_delay_relay_exit = 1;
@@ -4828,7 +4857,7 @@ void TriggerLogic_Task(void const * argument)
 												
 											}
 										}	
-										else if (master_array[i].master_value < master_array[i].master_emergency_set || master_array[i].master_value > master_array[i].low_master_emergency_set)						
+										else if (master_array[i].master_value < master_array[i].master_emergency_set)						
 										{
 											master_delay_relay_array[i].timer_delay_relay_2 = 0;
 											master_delay_relay_array[i].relay_permission_2 = 0;	
@@ -4849,31 +4878,33 @@ void TriggerLogic_Task(void const * argument)
 						
 						for(int i = 0; i < ZSK_REG_485_QTY; i++) 
 						{
-							if (i >= 0 & i < 5) 
+							if (i >= 0 && i < 5) 
 							{
-								if ((ZSK_trigger_array_previous[i] == 0) & (ZSK_trigger_array[i] != 0)) trigger_485_ZSK_percent += 5;								
+								if ((ZSK_trigger_array_previous[i] == 0) && (ZSK_trigger_array[i] != 0)) trigger_485_ZSK_percent += 5;								
 							}
 							
-							if (i >= 5 & i < 10) 
+							if (i >= 5 && i < 10) 
 							{
-								if ((ZSK_trigger_array_previous[i] == 0) & (ZSK_trigger_array[i] != 0)) trigger_485_ZSK_percent += 15-5;								
+								if ((ZSK_trigger_array_previous[i] == 0) && (ZSK_trigger_array[i] != 0)) trigger_485_ZSK_percent = 15;								
 							}
 							
-							if (i >= 10 & i < 26) 
+							if (i >= 10 && i < 26) 
 							{
-								if ((ZSK_trigger_array_previous[i] == 0) & (ZSK_trigger_array[i] != 0)) trigger_485_ZSK_percent = 90;
+								if ((ZSK_trigger_array_previous[i] == 0) && (ZSK_trigger_array[i] != 0)) trigger_485_ZSK_percent = 90;								
 							}							
 							
-							if ( (i >= 26 & i < 29) & ((x_axis & y_axis) |  (x_axis & z_axis) | (y_axis & z_axis)) )
+							if (i >= 26 && i < 29)
 							{
-								if ((ZSK_trigger_array_previous[i] == 0) & (ZSK_trigger_array[i] != 0)) trigger_485_ZSK_percent = 100;
+								if ((ZSK_trigger_array_previous[i] == 0) && (ZSK_trigger_array[i] != 0)) trigger_485_ZSK_percent = 100;
 							}							
 						}
 						
 						if (trigger_485_ZSK_percent < 0)  trigger_485_ZSK_percent = 0;
 						else if (trigger_485_ZSK_percent > 100) trigger_485_ZSK_percent = 100;
 						
-						//Фиксируем текущее состояние, для того чтоб не было одновременных/нескольких срабатываний при подъеме бита
+						if ( (x_axis & y_axis) ||  (x_axis & z_axis) || (y_axis & z_axis) )	trigger_485_ZSK_percent = 100;
+						
+						//Фиксируем текущее состояние, для того чтоб не было одновременных нескольких срабатываний при подъеме бита
 						memcpy(ZSK_trigger_array_previous, ZSK_trigger_array, sizeof(ZSK_trigger_array));
 				}					
 				
@@ -4930,9 +4961,12 @@ void TriggerLogic_Task(void const * argument)
 			
 			quit_relay_button = 1;		
 
-			//Сброс битов ЗСК
+			//Сброс битов в системе ЗСК
 			trigger_485_ZSK = 0;
 			trigger_485_ZSK_percent = 0;
+			x_axis = 0;
+			y_axis = 0;
+			z_axis = 0;
 			
 		}
 		
@@ -5881,7 +5915,7 @@ void init_menu(uint8_t where_from) //Иниц. меню (1 - конфиг, т.е. зажата кнопка 
 		number_of_items_in_the_menu++;
 	}
 	
-	if (channel_485_ON == 1)
+	if (channel_485_ON == 1 || channel_485_ON == 2)
 	{
 		menu_index_array[number_of_items_in_the_menu] = items_menu_485;
 		number_of_items_in_the_menu++;

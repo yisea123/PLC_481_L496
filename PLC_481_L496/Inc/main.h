@@ -136,13 +136,15 @@
 
 #define TIME_BREAK_SENSOR_485 15
 
-#define VERSION 5.15
+#define VERSION 5.16
 
 #define REG_485_QTY 40
 #define REG_485_START_ADDR 144
 #define STRUCTURE_SIZE 20 //Размер структуры для канала 485
 
 #define ZSK_REG_485_QTY 32
+#define ZSK_AVERAGE_WINDOW 8
+#define MOVING_AVERAGE 1
 
 #define TOC_QUEUE_LENGHT (25600 / ADC_BUFFER_SIZE)
 

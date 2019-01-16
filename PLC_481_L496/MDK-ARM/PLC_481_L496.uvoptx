@@ -187,22 +187,42 @@
         <Ww>
           <count>3</count>
           <WinNumber>2</WinNumber>
-          <ItemText>xxx</ItemText>
+          <ItemText>x_axis</ItemText>
         </Ww>
         <Ww>
           <count>4</count>
           <WinNumber>2</WinNumber>
-          <ItemText>yyy</ItemText>
+          <ItemText>y_axis</ItemText>
         </Ww>
         <Ww>
           <count>5</count>
           <WinNumber>2</WinNumber>
-          <ItemText>zzz</ItemText>
+          <ItemText>z_axis</ItemText>
         </Ww>
         <Ww>
           <count>6</count>
           <WinNumber>2</WinNumber>
-          <ItemText>trigger_485_ZSK_percent</ItemText>
+          <ItemText>trigger_485_ZSK_percent,0x0A</ItemText>
+        </Ww>
+        <Ww>
+          <count>7</count>
+          <WinNumber>2</WinNumber>
+          <ItemText>trigger_485_ZSK &amp; (1&lt;&lt;26)</ItemText>
+        </Ww>
+        <Ww>
+          <count>8</count>
+          <WinNumber>2</WinNumber>
+          <ItemText>trigger_485_ZSK &amp; (1&lt;&lt;27)</ItemText>
+        </Ww>
+        <Ww>
+          <count>9</count>
+          <WinNumber>2</WinNumber>
+          <ItemText>trigger_485_ZSK &amp; (1&lt;&lt;28)</ItemText>
+        </Ww>
+        <Ww>
+          <count>10</count>
+          <WinNumber>2</WinNumber>
+          <ItemText>zsk_average_array</ItemText>
         </Ww>
       </WatchWindow2>
       <MemoryWindow1>
