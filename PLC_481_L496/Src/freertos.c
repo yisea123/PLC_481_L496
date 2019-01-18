@@ -99,7 +99,7 @@ xSemaphoreHandle 	Semaphore1, Semaphore2,
 									Semaphore_Master_Modbus_Rx, Semaphore_Master_Modbus_Tx,
 									Semaphore_Relay_1, Semaphore_Relay_2,
 									Semaphore_HART_Receive, Semaphore_HART_Transmit,
-									Mutex_Setting,
+									Mutex_Setting, Mutex_Average,
 									Semaphore_TBUS_Modbus_Rx, Semaphore_TBUS_Modbus_Tx, 
 									Semaphore_Bootloader_Update, Semaphore_Bootloader_Erase;
 									
@@ -475,7 +475,11 @@ volatile uint8_t status1 = 0;
 volatile uint8_t status2 = 0;
 volatile uint8_t status3 = 0;
 
-float32_t zsk_average_array[ZSK_REG_485_QTY][ZSK_AVERAGE_WINDOW];
+uint16_t size_moving_average_ZSK;
+float32_t* zsk_average_array[ZSK_REG_485_QTY]; 
+float32_t average_result = 0.0;
+
+
 
 /* USER CODE END Variables */
 osThreadId defaultTaskHandle;
@@ -629,7 +633,12 @@ void MX_FREERTOS_Init(void) {
 	Q_2peak_array_4_20 = pvPortMalloc( sizeof(float32_t)*QUEUE_LENGHT_4_20 );
 	
 	
-	
+	//Выделяем память под двумерный массив для усреднения (ЗСК)
+	for (int i=0; i < ZSK_REG_485_QTY; i++) 
+	{
+		zsk_average_array[i] = (float32_t*) pvPortMalloc( size_moving_average_ZSK * sizeof(float32_t) );		
+	}
+		
 	acceleration_queue_icp = xQueueCreate(QUEUE_LENGHT, sizeof(float32_t));	
 	velocity_queue_icp = xQueueCreate(QUEUE_LENGHT, sizeof(float32_t));
 	displacement_queue_icp = xQueueCreate(QUEUE_LENGHT, sizeof(float32_t));	
@@ -668,6 +677,7 @@ void MX_FREERTOS_Init(void) {
 	vSemaphoreCreateBinary(Semaphore_TBUS_Modbus_Tx);
 	vSemaphoreCreateBinary(Semaphore_Bootloader_Update);
 	vSemaphoreCreateBinary(Semaphore_Bootloader_Erase);
+	Mutex_Average = xSemaphoreCreateMutex();       
   /* USER CODE END Init */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -4075,13 +4085,13 @@ void Master_Modbus_Receive(void const * argument)
 
 		HAL_UART_Receive_DMA(&huart1, master_receive_buffer, 9); 
 		
-		if (master_receive_buffer[0] == master_array[master_response_received_id].master_addr)
+		if (master_receive_buffer[0] == master_array[master_response_received_id].master_addr) //адрес
 		{						
 				f_number = master_receive_buffer[1]; //номер функции	
 				byte_number = master_receive_buffer[2];//кол-во байт
 						
 			
-				//считаем crc
+				//считаем CRC
 				calculated_crc = crc16(master_receive_buffer, 3 + byte_number);										
 				actual_crc = master_receive_buffer[3 + byte_number];
 				actual_crc += master_receive_buffer[3 + byte_number + 1] << 8;
@@ -4094,12 +4104,15 @@ void Master_Modbus_Receive(void const * argument)
 								{	
 									master_array[master_response_received_id].master_value = (master_receive_buffer[3] << 8 ) + master_receive_buffer[4];
 								}
+								
 								if ( master_array[master_response_received_id].master_type == 1 ) //Тип данных, Float (ABCD)
 								{
 									temp_data[0] = (master_receive_buffer[3] << 8 ) + master_receive_buffer[4];
 									temp_data[1] = (master_receive_buffer[5] << 8 ) + master_receive_buffer[6];
 									master_array[master_response_received_id].master_value = convert_hex_to_float(&temp_data[0], 0);
 								}								
+								
+								
 								if ( master_array[master_response_received_id].master_type == 2 || master_array[master_response_received_id].master_type == 5) //Тип данных, Int
 								{									
 									rawValue = (master_receive_buffer[3] << 8 ) + master_receive_buffer[4];
@@ -4113,6 +4126,7 @@ void Master_Modbus_Receive(void const * argument)
 										master_array[master_response_received_id].master_value = rawValue | ~((1 << 15) - 1);
 									}
 								}
+								
 								if ( master_array[master_response_received_id].master_type == 3 ) //Тип данных, Abs. int
 								{									
 									rawValue = (master_receive_buffer[3] << 8 ) + master_receive_buffer[4];
@@ -4128,11 +4142,13 @@ void Master_Modbus_Receive(void const * argument)
 									}
 								}
 
+								
 								if ( master_array[master_response_received_id].master_type == 4 ) //Тип данных, swFloat (swap words CDAB)
-								{
+								{									
 									temp_data[0] = (master_receive_buffer[5] << 8 ) + master_receive_buffer[6];
 									temp_data[1] = (master_receive_buffer[3] << 8 ) + master_receive_buffer[4];
-									master_array[master_response_received_id].master_value = convert_hex_to_float(&temp_data[0], 0);
+									
+									master_array[master_response_received_id].master_value = convert_hex_to_float(&temp_data[0], 0);																		
 								}									
 						}
 						
@@ -4203,27 +4219,27 @@ void Master_Modbus_Transmit(void const * argument)
 				if ( master_array[i].master_on == 1) //Если регистр выключен, то запрашиваем следующий		
 				{					
 					
-					HAL_UART_Transmit_DMA(&huart1, master_transmit_buffer, 8);
-					
-					//Счетчик запросов
-					mb_master_request++;
+						HAL_UART_Transmit_DMA(&huart1, master_transmit_buffer, 8);
+						
+						//Счетчик запросов
+						mb_master_request++;
 
-					
-					//Фиксируем время для расчета таймаута					
-					xTimeOutBefore = xTaskGetTickCount();			
-					
-					//Ждем уведомление о получении ответа, либо ошибка по таймауту
-					ulTaskNotifyTake( pdTRUE, master_array[i].request_timeout ); 
-					
-					//Проверка таймаута
-					xTotalTimeOutSuspended = xTaskGetTickCount() - xTimeOutBefore;					
-					
-					if ( xTotalTimeOutSuspended >= master_array[i].request_timeout ) 
-					{
-						mb_master_timeout_error++;											
-					}
-					
-					mb_master_timeout_error_percent = (float32_t) mb_master_timeout_error * 100.0 / mb_master_request; 						
+						
+						//Фиксируем время для расчета таймаута					
+						xTimeOutBefore = xTaskGetTickCount();			
+						
+						//Ждем уведомление о получении ответа, либо ошибка по таймауту
+						ulTaskNotifyTake( pdTRUE, master_array[i].request_timeout ); 
+						
+						//Проверка таймаута
+						xTotalTimeOutSuspended = xTaskGetTickCount() - xTimeOutBefore;					
+						
+						if ( xTotalTimeOutSuspended >= master_array[i].request_timeout ) 
+						{
+							mb_master_timeout_error++;											
+						}
+						
+						mb_master_timeout_error_percent = (float32_t) mb_master_timeout_error * 100.0 / mb_master_request; 						
 					
 				}				
 		}
@@ -4271,9 +4287,10 @@ void Data_Storage_Task(void const * argument)
 		settings[26] = temp[0];
 		settings[27] = temp[1];
 		
-		settings[30] = trigger_485_ZSK; 				//Младшие байты
-		settings[31] = trigger_485_ZSK >> 16;		//Старшие байты
+		settings[30] = trigger_485_ZSK; 				//Младшие биты
+		settings[31] = trigger_485_ZSK >> 16;		//Старшие биты
 		settings[32] = trigger_485_ZSK_percent;
+		
 		
 		convert_float_and_swap(mean_4_20, &temp[0]);		
 		settings[36] = temp[0];
@@ -4365,8 +4382,37 @@ void Data_Storage_Task(void const * argument)
 
 	
 		if (menu_edit_mode == 0)
-		for (uint8_t i = 0; i < REG_485_QTY; i++)
+		for (uint16_t i = 0; i < REG_485_QTY; i++)
 		{			
+				temp[0] = 0;
+				temp[1] = 0;			
+			
+						
+				if (channel_485_ON == 2) //Специальный режим работы для системы ЗСК	
+				if(MOVING_AVERAGE == 1) //Расчитываем скользящее среднее и перезаписываем значение с учетом усреднения (ЗСК)		
+				if (i < ZSK_REG_485_QTY)
+				{												
+						average_result = 0.0;																	
+					
+						//Сдвигаем массив для записи нового элемента
+						for (int y = 1; y < size_moving_average_ZSK; y++)				
+						{
+								zsk_average_array[i][y-1] = zsk_average_array[i][y];
+						}						
+						
+						//Записываем новое значение 
+						zsk_average_array[i][size_moving_average_ZSK - 1] = master_array[i].master_value;
+						
+						//Расчитываем среднее
+						for (int j = 0; j < size_moving_average_ZSK; j++)				
+						{
+								average_result += zsk_average_array[i][j] / size_moving_average_ZSK;
+						}
+						
+						master_array[i].master_value = average_result;
+				}			
+			
+			
 				master_array[i].master_on = settings[REG_485_START_ADDR + STRUCTURE_SIZE*i + 0];
 				master_array[i].master_addr = settings[REG_485_START_ADDR + STRUCTURE_SIZE*i + 1];
 				master_array[i].master_numreg = settings[REG_485_START_ADDR + STRUCTURE_SIZE*i + 2];
@@ -4382,12 +4428,15 @@ void Data_Storage_Task(void const * argument)
 				{
 					settings[REG_485_START_ADDR + STRUCTURE_SIZE*i + 10] = master_array[i].master_value; 
 				}
+				
+								
 				if (master_array[i].master_type == 1 || master_array[i].master_type == 4) //Тип, float 
 				{					
 					convert_float_and_swap(master_array[i].master_value, &temp[0]);	 
 					settings[REG_485_START_ADDR + STRUCTURE_SIZE*i + 10] = temp[0];
-					settings[REG_485_START_ADDR + STRUCTURE_SIZE*i + 11] = temp[1];
+					settings[REG_485_START_ADDR + STRUCTURE_SIZE*i + 11] = temp[1];		
 				}
+				
 				if (master_array[i].master_type == 2 || master_array[i].master_type == 3) //Тип, int
 				{
 					settings[REG_485_START_ADDR + STRUCTURE_SIZE*i + 10] = (int16_t) master_array[i].master_value; 
@@ -4399,7 +4448,6 @@ void Data_Storage_Task(void const * argument)
 				master_array[i].master_warning_set = convert_hex_to_float(&settings[REG_485_START_ADDR + STRUCTURE_SIZE*i + 16], 0);	
 				master_array[i].master_emergency_set = convert_hex_to_float(&settings[REG_485_START_ADDR + STRUCTURE_SIZE*i + 18], 0);			
 		}
-
 
 
 		//Применение/запись настроек + запись метрологических коэф.
@@ -4509,7 +4557,7 @@ void Data_Storage_Task(void const * argument)
 		}
 		
 		
-    osDelay(100);
+    osDelay(30);
   }
   /* USER CODE END Data_Storage_Task */
 }
@@ -4716,32 +4764,10 @@ void TriggerLogic_Task(void const * argument)
 				if (channel_485_ON == 2) //Специальный режим работы для системы ЗСК
 				{
 					
-						for (volatile uint8_t i = 0; i < ZSK_REG_485_QTY; i++)
+						for (uint8_t i = 0; i < ZSK_REG_485_QTY; i++)
 						{
 								if (master_array[i].master_on == 1)
 								{			
-										//Расчитываем скользящее среднее и перезаписываем значение с учетом усреднения
-										if(MOVING_AVERAGE == 1)
-										{											
-												float32_t average_result = 0.0;
-												
-												//Сдвигаем массив для записи нового элемента
-												for (int y = 1; y < ZSK_AVERAGE_WINDOW; y++)				
-												{
-														zsk_average_array[i][y-1] = zsk_average_array[i][y];
-												}
-												
-												//Записываем новое значение 
-												zsk_average_array[i][ZSK_AVERAGE_WINDOW - 1] = master_array[i].master_value;
-												
-												//Расчитываем среднее
-												for (int j = 0; j < ZSK_AVERAGE_WINDOW; j++)				
-												{
-														average_result += zsk_average_array[i][j] / ZSK_AVERAGE_WINDOW;
-												}
-												
-												master_array[i].master_value = average_result;											
-										}
 									
 										//Нижняя предупредительная уставка
 										if (master_array[i].master_value >= master_array[i].low_master_warning_set || break_sensor_485 == 1) 
@@ -4978,7 +5004,7 @@ void TriggerLogic_Task(void const * argument)
 		}
 		
 		
-    osDelay(50);
+    osDelay(10);
   }
   /* USER CODE END TriggerLogic_Task */
 }

@@ -142,15 +142,15 @@
 #define REG_485_START_ADDR 144
 #define STRUCTURE_SIZE 20 //Размер структуры для канала 485
 
-#define ZSK_REG_485_QTY 32
-#define ZSK_AVERAGE_WINDOW 8
-#define MOVING_AVERAGE 1
+#define ZSK_REG_485_QTY 32		 
+#define MOVING_AVERAGE 1 //Вкл. усреднение ЗСК
 
 #define TOC_QUEUE_LENGHT (25600 / ADC_BUFFER_SIZE)
 
 #define REG_COUNT (REG_485_START_ADDR + (REG_485_QTY * STRUCTURE_SIZE))
 
 void convert_float_and_swap(float32_t float_in, uint16_t* int_out);
+void convert_float_and_swap2(float32_t* float_in, uint16_t* int_out);
 float32_t convert_hex_to_float(uint16_t* in, uint8_t index);
 void read_init_settings(void);
 

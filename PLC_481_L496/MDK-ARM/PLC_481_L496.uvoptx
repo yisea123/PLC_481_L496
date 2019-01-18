@@ -117,7 +117,6 @@
         <SetRegEntry>
           <Number>0</Number>
           <Key>DLGUARM</Key>
-          <Name></Name>
         </SetRegEntry>
         <SetRegEntry>
           <Number>0</Number>
@@ -167,6 +166,11 @@
           <WinNumber>1</WinNumber>
           <ItemText>freeHeapSize,0x0A</ItemText>
         </Ww>
+        <Ww>
+          <count>3</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>xTotalTimeOutSuspended,0x0A</ItemText>
+        </Ww>
       </WatchWindow1>
       <WatchWindow2>
         <Ww>
@@ -182,47 +186,42 @@
         <Ww>
           <count>2</count>
           <WinNumber>2</WinNumber>
-          <ItemText>trigger_485_ZSK</ItemText>
+          <ItemText>zsk_average_array</ItemText>
         </Ww>
         <Ww>
           <count>3</count>
           <WinNumber>2</WinNumber>
-          <ItemText>x_axis</ItemText>
+          <ItemText>size_moving_average_ZSK,0x0A</ItemText>
         </Ww>
         <Ww>
           <count>4</count>
           <WinNumber>2</WinNumber>
-          <ItemText>y_axis</ItemText>
+          <ItemText>average_result</ItemText>
         </Ww>
         <Ww>
           <count>5</count>
           <WinNumber>2</WinNumber>
-          <ItemText>z_axis</ItemText>
+          <ItemText>master_array[0].master_value</ItemText>
         </Ww>
         <Ww>
           <count>6</count>
           <WinNumber>2</WinNumber>
-          <ItemText>trigger_485_ZSK_percent,0x0A</ItemText>
+          <ItemText>settings[154]</ItemText>
         </Ww>
         <Ww>
           <count>7</count>
           <WinNumber>2</WinNumber>
-          <ItemText>trigger_485_ZSK &amp; (1&lt;&lt;26)</ItemText>
+          <ItemText>settings[155]</ItemText>
         </Ww>
         <Ww>
           <count>8</count>
           <WinNumber>2</WinNumber>
-          <ItemText>trigger_485_ZSK &amp; (1&lt;&lt;27)</ItemText>
+          <ItemText>check_one</ItemText>
         </Ww>
         <Ww>
           <count>9</count>
           <WinNumber>2</WinNumber>
-          <ItemText>trigger_485_ZSK &amp; (1&lt;&lt;28)</ItemText>
-        </Ww>
-        <Ww>
-          <count>10</count>
-          <WinNumber>2</WinNumber>
-          <ItemText>zsk_average_array</ItemText>
+          <ItemText>master_response_received_id</ItemText>
         </Ww>
       </WatchWindow2>
       <MemoryWindow1>
@@ -553,7 +552,7 @@
       <GroupNumber>3</GroupNumber>
       <FileNumber>21</FileNumber>
       <FileType>1</FileType>
-      <tvExp>0</tvExp>
+      <tvExp>1</tvExp>
       <Focus>0</Focus>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
