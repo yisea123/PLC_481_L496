@@ -134,9 +134,9 @@
 #define SLAVE_ADR slave_adr
 #define SLAVE_BAUDRATE baud_rate_uart_2
 
-#define TIME_BREAK_SENSOR_485 15
+#define TIME_BREAK_SENSOR_485 15 //сек.
 
-#define VERSION 5.16
+#define VERSION 5.18
 
 #define REG_485_QTY 40
 #define REG_485_START_ADDR 144
@@ -167,7 +167,7 @@ struct mb_master_delay_relay
 extern struct mb_master_delay_relay master_delay_relay_array[REG_485_QTY];
 
 #define BUTTON_SENSE 5 //Чувствительность нажатия на кнопку
-#define QUIT_TIMER 2 //Таймер нечувствительности (квитирование реле) 
+#define QUIT_TIMER 1 //Таймер нечувствительности (квитирование реле) 
 
 #define BOOT_START_ADDRESS 0x8004000
 #define BOOT_CRC_ADR 0x8003000

@@ -479,6 +479,8 @@ uint16_t size_moving_average_ZSK;
 float32_t* zsk_average_array[ZSK_REG_485_QTY]; 
 float32_t average_result = 0.0;
 
+//volatile uint16_t reg_lost_packet = 0;
+volatile uint16_t reg_lost_packet[REG_485_QTY];
 
 
 /* USER CODE END Variables */
@@ -1633,7 +1635,7 @@ void Display_Task(void const * argument)
 						button_center_pressed_in_long = 0;
 						button_center_pressed_in_short = 0;
 						menu_edit_settings_mode = 0;
-						quit_relay_button = 1; //Включаем таймер чтоб не срабатывало квитирование						
+						quit_relay_button = 1; //Включаем таймер чтобы не срабатывало квитирование						
 					}
 					
 					
@@ -2517,10 +2519,10 @@ void Display_Task(void const * argument)
 								ssd1306_Fill(0);
 								ssd1306_SetCursor(0,0);												
 								ssd1306_WriteString("485",font_8x14,1);		
-								if (channel_485_ON == 2) 
+								if (channel_485_ON == 2) // ЗСК
 								{
-									ssd1306_SetCursor(30,0);												
-									ssd1306_WriteString("ЗСК",font_8x15_RU,1);		
+									ssd1306_SetCursor(28,0);												
+									ssd1306_WriteString("3CK",font_8x14,1);		
 								}
 								
 								if (menu_edit_settings_mode == 0)
@@ -4077,7 +4079,7 @@ void Master_Modbus_Receive(void const * argument)
   {
 		
 		xSemaphoreTake( Semaphore_Master_Modbus_Rx, portMAX_DELAY );					
-				
+		
 		__HAL_UART_CLEAR_IT(&huart1, UART_CLEAR_IDLEF); 				
 		__HAL_UART_ENABLE_IT(&huart1, UART_IT_IDLE);
 		
@@ -4089,7 +4091,6 @@ void Master_Modbus_Receive(void const * argument)
 		{						
 				f_number = master_receive_buffer[1]; //номер функции	
 				byte_number = master_receive_buffer[2];//кол-во байт
-						
 			
 				//считаем CRC
 				calculated_crc = crc16(master_receive_buffer, 3 + byte_number);										
@@ -4168,12 +4169,15 @@ void Master_Modbus_Receive(void const * argument)
 					mb_master_crc_error++;						
 				}
 				
-				mb_master_crc_error_percent = (float32_t) mb_master_crc_error * 100.0 / mb_master_response;
+				//Вычисляем проценты по CRC
+				mb_master_crc_error_percent = (float32_t) mb_master_crc_error * 100.0 / mb_master_response;				
+				if (mb_master_crc_error_percent < 0) mb_master_crc_error_percent = 0;
+				if (mb_master_crc_error_percent > 100) mb_master_crc_error_percent = 100;
 				
 				//Счетчик всех ответов
 				mb_master_response++;			
 		}
-			
+
     
   }
   /* USER CODE END Master_Modbus_Receive */
@@ -4192,35 +4196,37 @@ void Master_Modbus_Transmit(void const * argument)
 	uint16_t crc = 0;
 	TimeOut_t xTimeOut;
 		
-	xTask18 = xTaskGetCurrentTaskHandle();
+	
 	
   /* Infinite loop */
   for(;;)
   {
+
+		xTask18 = xTaskGetCurrentTaskHandle();	
 		
 		for(uint8_t i=0; i< REG_485_QTY; i++)
 		{	
-				master_transmit_buffer[0] = master_array[i].master_addr;
-				master_transmit_buffer[1] = master_array[i].master_func;
-				master_transmit_buffer[2] = (master_array[i].master_numreg - 1) >> 8; 		//Смещение адреса, т.к. регистр номер 1 равно адресу 0.
-				master_transmit_buffer[3] = (master_array[i].master_numreg - 1) & 0x00FF;
-				master_transmit_buffer[4] = 0;			
-				if (master_array[i].master_type == 0) master_transmit_buffer[5] = 1;
-				else master_transmit_buffer[5] = 2;				
-						
-				crc = crc16(master_transmit_buffer, 6);				
-						
-				master_transmit_buffer[6] = crc;
-				master_transmit_buffer[7] = crc >> 8;
-				
-				master_response_received_id = i;
-
 			
 				if ( master_array[i].master_on == 1) //Если регистр выключен, то запрашиваем следующий		
-				{					
+				{				
+						master_transmit_buffer[0] = master_array[i].master_addr;
+						master_transmit_buffer[1] = master_array[i].master_func;
+						master_transmit_buffer[2] = (master_array[i].master_numreg - 1) >> 8; 		//Смещение адреса, т.к. регистр номер 1 равно адресу 0.
+						master_transmit_buffer[3] = (master_array[i].master_numreg - 1) & 0x00FF;
+						master_transmit_buffer[4] = 0;			
+						if (master_array[i].master_type == 0) master_transmit_buffer[5] = 1;
+						else master_transmit_buffer[5] = 2;				
+								
+						crc = crc16(master_transmit_buffer, 6);				
+								
+						master_transmit_buffer[6] = crc;
+						master_transmit_buffer[7] = crc >> 8;
+						
+						master_response_received_id = i;
+
 					
 						HAL_UART_Transmit_DMA(&huart1, master_transmit_buffer, 8);
-						
+					
 						//Счетчик запросов
 						mb_master_request++;
 
@@ -4236,17 +4242,22 @@ void Master_Modbus_Transmit(void const * argument)
 						
 						if ( xTotalTimeOutSuspended >= master_array[i].request_timeout ) 
 						{
+							reg_lost_packet[i] += 1;
 							mb_master_timeout_error++;											
 						}
 						
-						mb_master_timeout_error_percent = (float32_t) mb_master_timeout_error * 100.0 / mb_master_request; 						
-					
+						//Вычисляем проценты по таймауту
+						mb_master_timeout_error_percent = (float32_t) mb_master_timeout_error * 100.0 / mb_master_request; 		
+						if (mb_master_timeout_error_percent < 0) mb_master_timeout_error_percent = 0;
+						if (mb_master_timeout_error_percent > 100) mb_master_timeout_error_percent = 100;
+						
+						osDelay(3); //Silent time/delay between modbus request (must 3.5 char)
 				}				
 		}
-		
-		//Общий интервал опроса всех регистров
+			
+		//Период опроса всех регистров, мс
 		osDelay(mb_master_timeout);
-    
+	    
   }
   /* USER CODE END Master_Modbus_Transmit */
 }
@@ -4384,13 +4395,10 @@ void Data_Storage_Task(void const * argument)
 		if (menu_edit_mode == 0)
 		for (uint16_t i = 0; i < REG_485_QTY; i++)
 		{			
-				temp[0] = 0;
-				temp[1] = 0;			
-			
 						
 				if (channel_485_ON == 2) //Специальный режим работы для системы ЗСК	
 				if(MOVING_AVERAGE == 1) //Расчитываем скользящее среднее и перезаписываем значение с учетом усреднения (ЗСК)		
-				if (i < ZSK_REG_485_QTY)
+				if (i < 15) //Усредняем только вибропараметры
 				{												
 						average_result = 0.0;																	
 					
@@ -4557,7 +4565,7 @@ void Data_Storage_Task(void const * argument)
 		}
 		
 		
-    osDelay(30);
+    osDelay(10);
   }
   /* USER CODE END Data_Storage_Task */
 }
@@ -4769,127 +4777,169 @@ void TriggerLogic_Task(void const * argument)
 								if (master_array[i].master_on == 1)
 								{			
 									
-										//Нижняя предупредительная уставка
-										if (master_array[i].master_value >= master_array[i].low_master_warning_set || break_sensor_485 == 1) 
-										{											
+										if ((i >= 0) && (i < 15)) //Регистры с вибропараметрами
+										{
 											
-											if (i == 0 || i == 1 || i == 2) trigger_485_ZSK |= (1<<0);
-											if (i == 3 || i == 4 || i == 5) trigger_485_ZSK |= (1<<1);											
-											if (i == 6 || i == 7 || i == 8) trigger_485_ZSK |= (1<<2);											
-											if (i == 9 || i == 10 || i == 11) trigger_485_ZSK |= (1<<3);
-											if (i == 12 || i == 13 || i == 14) trigger_485_ZSK |= (1<<4);														
+												//Нижняя предупредительная уставка
+												if (master_array[i].master_value >= master_array[i].low_master_warning_set || break_sensor_485 == 1) 
+												{											
+													
+													if (i == 0 || i == 1 || i == 2) trigger_485_ZSK |= (1<<0);
+													if (i == 3 || i == 4 || i == 5) trigger_485_ZSK |= (1<<1);											
+													if (i == 6 || i == 7 || i == 8) trigger_485_ZSK |= (1<<2);											
+													if (i == 9 || i == 10 || i == 11) trigger_485_ZSK |= (1<<3);
+													if (i == 12 || i == 13 || i == 14) trigger_485_ZSK |= (1<<4);														
 
-										}	
-								
-									
-									
-										//Предупредительная уставка
-										if (master_array[i].master_value >= master_array[i].master_warning_set || break_sensor_485 == 1) 
-										{
-											
-											master_delay_relay_array[i].flag_delay_relay_1 = 1;
-											
-											if (master_delay_relay_array[i].relay_permission_1 == 1)
-											{
+												}												
 												
-												if (i == 0 || i == 1 || i == 2) trigger_485_ZSK |= (1<<5);
-												if (i == 3 || i == 4 || i == 5) trigger_485_ZSK |= (1<<6);
-												if (i == 6 || i == 7 || i == 8) trigger_485_ZSK |= (1<<7);
-												if (i == 9 || i == 10 || i == 11) trigger_485_ZSK |= (1<<8);
-												if (i == 12 || i == 13 || i == 14) trigger_485_ZSK |= (1<<9);														
-												if (i == 15 || i == 16 || i == 17) trigger_485_ZSK |= (1<<25);		
-												
-												
-												state_warning_relay = 1;
-												flag_for_delay_relay_exit = 1;							
-												xSemaphoreGive( Semaphore_Relay_1 );							
-											}
-										}	
-										else if (master_array[i].master_value < master_array[i].master_warning_set) 						
-										{
-											master_delay_relay_array[i].timer_delay_relay_1 = 0;
-											master_delay_relay_array[i].relay_permission_1 = 0;	
-											master_delay_relay_array[i].flag_delay_relay_1 = 0;											
+												//Предупредительная уставка											
+												if (master_array[i].master_value >= master_array[i].master_warning_set || break_sensor_485 == 1) 
+												{
+													
+														master_delay_relay_array[i].flag_delay_relay_1 = 1;
+														
+														if (master_delay_relay_array[i].relay_permission_1 == 1)
+														{															
+															if (i == 0 || i == 1 || i == 2) trigger_485_ZSK |= (1<<5);
+															if (i == 3 || i == 4 || i == 5) trigger_485_ZSK |= (1<<6);
+															if (i == 6 || i == 7 || i == 8) trigger_485_ZSK |= (1<<7);
+															if (i == 9 || i == 10 || i == 11) trigger_485_ZSK |= (1<<8);
+															if (i == 12 || i == 13 || i == 14) trigger_485_ZSK |= (1<<9);																															
+															
+															state_warning_relay = 1;
+															flag_for_delay_relay_exit = 1;							
+															xSemaphoreGive( Semaphore_Relay_1 );							
+														}
+												}	
+												else if (master_array[i].master_value < master_array[i].master_warning_set) 						
+												{
+														master_delay_relay_array[i].timer_delay_relay_1 = 0;
+														master_delay_relay_array[i].relay_permission_1 = 0;	
+														master_delay_relay_array[i].flag_delay_relay_1 = 0;											
+												}
+										
+										
+										
+												//Аварийная уставка
+												if (master_array[i].master_value >= master_array[i].master_emergency_set || break_sensor_485 == 1) 
+												{											
+													master_delay_relay_array[i].flag_delay_relay_2 = 1;
+													
+													if (master_delay_relay_array[i].relay_permission_2 == 1)
+													{
+														
+															if (i == 0) trigger_485_ZSK |= (1<<10);
+															if (i == 1) trigger_485_ZSK |= (1<<11);
+															if (i == 2) trigger_485_ZSK |= (1<<12);
+															
+															if (i == 3) trigger_485_ZSK |= (1<<13);
+															if (i == 4) trigger_485_ZSK |= (1<<14);
+															if (i == 5) trigger_485_ZSK |= (1<<15);
+															
+															if (i == 6) trigger_485_ZSK |= (1<<16);
+															if (i == 7) trigger_485_ZSK |= (1<<17);
+															if (i == 8) trigger_485_ZSK |= (1<<18);
+															
+															if (i == 9) trigger_485_ZSK |= (1<<19);
+															if (i == 10) trigger_485_ZSK |= (1<<20);
+															if (i == 11) trigger_485_ZSK |= (1<<21);												
+															
+															if (i == 12) trigger_485_ZSK |= (1<<22);
+															if (i == 13) trigger_485_ZSK |= (1<<23);
+															if (i == 14) trigger_485_ZSK |= (1<<24);																								
+
+															
+															//Проверка на срабатывание по осям	
+															x_axis = (((trigger_485_ZSK & (1<<10)) != 0) ||
+															((trigger_485_ZSK & (1<<13)) != 0) ||
+															((trigger_485_ZSK & (1<<16)) != 0) ||
+															((trigger_485_ZSK & (1<<19)) != 0) ||
+															((trigger_485_ZSK & (1<<22)) != 0));
+															
+															y_axis = (((trigger_485_ZSK & (1<<11)) != 0) ||
+															((trigger_485_ZSK & (1<<14)) != 0) ||
+															((trigger_485_ZSK & (1<<17)) != 0) ||
+															((trigger_485_ZSK & (1<<20)) != 0) ||
+															((trigger_485_ZSK & (1<<23)) != 0));
+															
+															z_axis = (((trigger_485_ZSK & (1<<12)) != 0) ||
+															((trigger_485_ZSK & (1<<15)) != 0) ||
+															((trigger_485_ZSK & (1<<18)) != 0) ||
+															((trigger_485_ZSK & (1<<21)) != 0) ||
+															((trigger_485_ZSK & (1<<24)) != 0));												
+															
+
+															if ( (x_axis & y_axis) ||  (x_axis & z_axis) || (y_axis & z_axis) )												
+															{
+																state_emerg_relay = 1;
+																flag_for_delay_relay_exit = 1;
+																xSemaphoreGive( Semaphore_Relay_2 );							
+															}														
+													}
+												}	
+												else if (master_array[i].master_value < master_array[i].master_emergency_set)						
+												{
+														master_delay_relay_array[i].timer_delay_relay_2 = 0;
+														master_delay_relay_array[i].relay_permission_2 = 0;	
+														master_delay_relay_array[i].flag_delay_relay_2 = 0; 											
+												}
+
 										}
-										
-										//Аварийная уставка
-										if (master_array[i].master_value >= master_array[i].master_emergency_set || break_sensor_485 == 1) 
-										{											
-											master_delay_relay_array[i].flag_delay_relay_2 = 1;
-											
-											if (master_delay_relay_array[i].relay_permission_2 == 1)
-											{
-												
-												if (i == 0) trigger_485_ZSK |= (1<<10);
-												if (i == 1) trigger_485_ZSK |= (1<<11);
-												if (i == 2) trigger_485_ZSK |= (1<<12);
-												
-												if (i == 3) trigger_485_ZSK |= (1<<13);
-												if (i == 4) trigger_485_ZSK |= (1<<14);
-												if (i == 5) trigger_485_ZSK |= (1<<15);
-												
-												if (i == 6) trigger_485_ZSK |= (1<<16);
-												if (i == 7) trigger_485_ZSK |= (1<<17);
-												if (i == 8) trigger_485_ZSK |= (1<<18);
-												
-												if (i == 9) trigger_485_ZSK |= (1<<19);
-												if (i == 10) trigger_485_ZSK |= (1<<20);
-												if (i == 11) trigger_485_ZSK |= (1<<21);												
-												
-												if (i == 12) trigger_485_ZSK |= (1<<22);
-												if (i == 13) trigger_485_ZSK |= (1<<23);
-												if (i == 14) trigger_485_ZSK |= (1<<24);																								
-												
-												
-												if (i == 15) trigger_485_ZSK |= (1<<26);
-												if (i == 16) trigger_485_ZSK |= (1<<27);
-												if (i == 17) trigger_485_ZSK |= (1<<28);																								
-
-												
-												if ( ((trigger_485_ZSK & (1<<26)) != 0) || ((trigger_485_ZSK & (1<<27)) != 0) || ((trigger_485_ZSK & (1<<28)) != 0)  )
-												{
-													state_emerg_relay = 1;
-													flag_for_delay_relay_exit = 1;	
-													xSemaphoreGive( Semaphore_Relay_2 );							
-												}
-												
-												//Проверка на срабатывание по осям	
-												x_axis = (((trigger_485_ZSK & (1<<10)) != 0) ||
-												((trigger_485_ZSK & (1<<13)) != 0) ||
-												((trigger_485_ZSK & (1<<16)) != 0) ||
-												((trigger_485_ZSK & (1<<19)) != 0) ||
-												((trigger_485_ZSK & (1<<22)) != 0));
-												
-												y_axis = (((trigger_485_ZSK & (1<<11)) != 0) ||
-												((trigger_485_ZSK & (1<<14)) != 0) ||
-												((trigger_485_ZSK & (1<<17)) != 0) ||
-												((trigger_485_ZSK & (1<<20)) != 0) ||
-												((trigger_485_ZSK & (1<<23)) != 0));
-												
-												z_axis = (((trigger_485_ZSK & (1<<12)) != 0) ||
-												((trigger_485_ZSK & (1<<15)) != 0) ||
-												((trigger_485_ZSK & (1<<18)) != 0) ||
-												((trigger_485_ZSK & (1<<21)) != 0) ||
-												((trigger_485_ZSK & (1<<24)) != 0));												
-												
-
-												if ( (x_axis & y_axis) ||  (x_axis & z_axis) || (y_axis & z_axis) )												
-												{
-													state_emerg_relay = 1;
-													flag_for_delay_relay_exit = 1;
-													xSemaphoreGive( Semaphore_Relay_2 );							
-												}
-												
-												
-											}
-										}	
-										else if (master_array[i].master_value < master_array[i].master_emergency_set)						
+										else if (i >= 15) //Регистры с углами
 										{
-											master_delay_relay_array[i].timer_delay_relay_2 = 0;
-											master_delay_relay_array[i].relay_permission_2 = 0;	
-											master_delay_relay_array[i].flag_delay_relay_2 = 0; 											
-										}										
+												//Предупредительная уставка											
+												if (master_array[i].master_value >= master_array[i].master_warning_set || master_array[i].master_value <= master_array[i].low_master_warning_set || break_sensor_485 == 1) 
+												{
+													
+														master_delay_relay_array[i].flag_delay_relay_1 = 1;
+														
+														if (master_delay_relay_array[i].relay_permission_1 == 1)
+														{
+											
+															if (i == 15 || i == 16 || i == 17) trigger_485_ZSK |= (1<<25);																	
+															
+															state_warning_relay = 1;
+															flag_for_delay_relay_exit = 1;							
+															xSemaphoreGive( Semaphore_Relay_1 );							
+														}
+												}	
+												else if (master_array[i].master_value < master_array[i].master_warning_set) 						
+												{
+														master_delay_relay_array[i].timer_delay_relay_1 = 0;
+														master_delay_relay_array[i].relay_permission_1 = 0;	
+														master_delay_relay_array[i].flag_delay_relay_1 = 0;											
+												}
 										
+										
+										
+												//Аварийная уставка
+												if (master_array[i].master_value >= master_array[i].master_emergency_set || master_array[i].master_value <= master_array[i].low_master_emergency_set || break_sensor_485 == 1) 
+												{											
+													master_delay_relay_array[i].flag_delay_relay_2 = 1;
+													
+													if (master_delay_relay_array[i].relay_permission_2 == 1)
+													{
+															
+															if (i == 15) trigger_485_ZSK |= (1<<26);
+															if (i == 16) trigger_485_ZSK |= (1<<27);
+															if (i == 17) trigger_485_ZSK |= (1<<28);																								
+
+															
+															if ( ((trigger_485_ZSK & (1<<26)) != 0) || ((trigger_485_ZSK & (1<<27)) != 0) || ((trigger_485_ZSK & (1<<28)) != 0)  )
+															{
+																state_emerg_relay = 1;
+																flag_for_delay_relay_exit = 1;	
+																xSemaphoreGive( Semaphore_Relay_2 );							
+															}
+													}
+												}	
+												else if (master_array[i].master_value < master_array[i].master_emergency_set)						
+												{
+														master_delay_relay_array[i].timer_delay_relay_2 = 0;
+														master_delay_relay_array[i].relay_permission_2 = 0;	
+														master_delay_relay_array[i].flag_delay_relay_2 = 0; 											
+												}											
+										}										
 								}
 						}							
 						
@@ -6047,6 +6097,8 @@ void save_settings(void)
 			ssd1306_WriteString(".",font_8x14,1);	
 			ssd1306_UpdateScreen();			
 			osDelay(2000);	
+	
+			menu_edit_mode = 0;
 	
 			//xSemaphoreGive( Mutex_Setting );
 			
