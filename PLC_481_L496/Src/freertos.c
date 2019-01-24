@@ -5051,7 +5051,10 @@ void TriggerLogic_Task(void const * argument)
 			trigger_485_ZSK_percent = 0;
 			x_axis = 0;
 			y_axis = 0;
-			z_axis = 0;
+			z_axis = 0;			
+			settings[30] = 0;
+			settings[31] = 0;
+			settings[33] = 0;
 			
 		}
 		
