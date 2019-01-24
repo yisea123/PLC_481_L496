@@ -295,6 +295,7 @@ uint32_t trigger_485_event_attribute_xtd3 = 0;
 uint64_t trigger_485_ZSK = 0; 
 uint64_t trigger_485_ZSK_previous = 0; 
 uint16_t trigger_485_ZSK_percent = 0;
+uint16_t trigger_485_ZSK_percent_prev = 0;
 uint64_t ZSK_trigger_array[ZSK_REG_485_QTY];
 uint64_t ZSK_trigger_array_previous[ZSK_REG_485_QTY];
 
@@ -4808,7 +4809,7 @@ void TriggerLogic_Task(void const * argument)
 															
 															state_warning_relay = 1;
 															flag_for_delay_relay_exit = 1;							
-															xSemaphoreGive( Semaphore_Relay_1 );							
+															xSemaphoreGive( Semaphore_Relay_1 );																
 														}
 												}	
 												else if (master_array[i].master_value < master_array[i].master_warning_set) 						
@@ -4947,7 +4948,7 @@ void TriggerLogic_Task(void const * argument)
 						
 						//Обработка регистра состояния оборудования (расчет процента, биты -> проценты)						
 
-						for (int i = 0; i < ZSK_REG_485_QTY; i++)
+						for (int i = 0; i < ZSK_REG_485_QTY; i++) //Раскидываем биты по массиву
 						{
 							ZSK_trigger_array[i] = trigger_485_ZSK & (1<<i);
 						}
@@ -4979,6 +4980,14 @@ void TriggerLogic_Task(void const * argument)
 						else if (trigger_485_ZSK_percent > 100) trigger_485_ZSK_percent = 100;
 						
 						if ( (x_axis & y_axis) ||  (x_axis & z_axis) || (y_axis & z_axis) )	trigger_485_ZSK_percent = 100;
+						
+						//Если было событие, сохраняем регистр состояния на flash
+						if (trigger_485_ZSK_percent_prev != trigger_485_ZSK_percent) 
+						{
+							write_reg_flash(104, trigger_485_ZSK, 1);
+							trigger_485_ZSK_percent_prev = trigger_485_ZSK_percent;
+						}
+						else trigger_485_ZSK_percent_prev = trigger_485_ZSK_percent;
 						
 						//Фиксируем текущее состояние, для того чтоб не было одновременных нескольких срабатываний при подъеме бита
 						memcpy(ZSK_trigger_array_previous, ZSK_trigger_array, sizeof(ZSK_trigger_array));

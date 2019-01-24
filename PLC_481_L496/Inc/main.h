@@ -136,7 +136,7 @@
 
 #define TIME_BREAK_SENSOR_485 15 //сек.
 
-#define VERSION 5.18
+#define VERSION 5.19
 
 #define REG_485_QTY 40
 #define REG_485_START_ADDR 144
@@ -176,6 +176,8 @@ extern struct mb_master_delay_relay master_delay_relay_array[REG_485_QTY];
 #define APP_START_ADDRESS 0x8010000
 #define APP_CRC_ADR 0x8003800
 #define APP_SIZE 0x8003820
+
+#define ZSK_STATE_REG 0x8034000 //(104*2048)
 
 /* USER CODE END Private defines */
 

@@ -199,6 +199,7 @@ extern xSemaphoreHandle Semaphore_Acceleration;
 extern uint8_t worker_status;
 
 extern uint16_t size_moving_average_ZSK;
+extern uint64_t trigger_485_ZSK; 
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -489,6 +490,9 @@ void read_init_settings(void)
 	range_icp = convert_hex_to_float(&settings[0], 20); 	
 	icp_menu_points_for_showing = settings[29]; 	
 
+	trigger_485_ZSK = read_flash(0x8034000); //32 бита
+	//trigger_485_ZSK |= read_flash(0x8034004);
+	
 	size_moving_average_ZSK = settings[33];
 	if ( size_moving_average_ZSK < 1 || size_moving_average_ZSK > 512 ) size_moving_average_ZSK = 1;
 	
