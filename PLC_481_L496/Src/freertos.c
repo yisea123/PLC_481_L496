@@ -1532,7 +1532,7 @@ void Display_Task(void const * argument)
 					
 					if (menu_index_pointer == 4) //Реле
 					{						
-						if (menu_edit_settings_mode == 0) horizont_menu_lenght = 3;
+						if (menu_edit_settings_mode == 0) horizont_menu_lenght = 2;
 						else horizont_menu_lenght = 4;	
 					}
 					
@@ -2520,10 +2520,14 @@ void Display_Task(void const * argument)
 								ssd1306_Fill(0);
 								ssd1306_SetCursor(0,0);												
 								ssd1306_WriteString("485",font_8x14,1);		
+								
 								if (channel_485_ON == 2) // ЗСК
 								{
+									ssd1306_Fill(0);
+									ssd1306_SetCursor(0,0);												
+									ssd1306_WriteString("ТИК",font_8x15_RU,1);		
 									ssd1306_SetCursor(28,0);												
-									ssd1306_WriteString("3CK",font_8x14,1);		
+									ssd1306_WriteString("ЗСК",font_8x15_RU,1);		
 								}
 								
 								if (menu_edit_settings_mode == 0)
@@ -2556,7 +2560,18 @@ void Display_Task(void const * argument)
 								{	
 										ssd1306_SetCursor(0,15);
 										
-										//if (menu_485_points_for_showing != 0)	
+										if (channel_485_ON == 2) // ЗСК	
+										{										
+											
+											strncpy(msg,"Состояние", 9);						
+											string_scroll(msg, 9);	
+											
+											ssd1306_SetCursor(0,32);				
+											snprintf(buffer, sizeof buffer, "%d %%", trigger_485_ZSK_percent);
+											ssd1306_WriteString(buffer,font_8x14,1);
+											
+										}
+										else
 										{
 											strncpy(msg,"Значение регистра ", 18);
 											string_scroll_with_number(msg, 18, menu_485_points_for_showing);					
@@ -2573,7 +2588,7 @@ void Display_Task(void const * argument)
 											}
 											
 											ssd1306_WriteString(buffer,font_8x14,1);											
-										}		
+										}											
 
 								}
 								
@@ -3093,84 +3108,113 @@ void Display_Task(void const * argument)
 					
 					if (menu_index_pointer == 4 && menu_horizontal == 1 && menu_edit_settings_mode == 0) //Аттрибут события ICP, 4-20
 					{
-						ssd1306_Fill(0);												
-						ssd1306_SetCursor(0,0);												
-						ssd1306_WriteString("Реле",font_8x15_RU,1);									
-						
-						triangle_left(55,0);
-						triangle_right(60,0);																								
-						//triangle_up(58,38);
-						//triangle_down(58,43);
-						
-						ssd1306_SetCursor(0,15);						
-						strncpy(msg,"Аттрибут события", 16);						
-						string_scroll(msg, 16);
-						ssd1306_WriteString(" 1",font_8x14,1);
-						
-						ssd1306_SetCursor(0,32);														
-						snprintf(buffer, sizeof buffer, "0x%X", trigger_event_attribute);			
-						ssd1306_WriteString(buffer,font_8x14,1); //Рабочий режим
 
-						menu_edit_mode = 0 ; //Запрещаем редактирование						
-						
-						ssd1306_UpdateScreen();			
+							ssd1306_Fill(0);												
+							ssd1306_SetCursor(0,0);												
+							ssd1306_WriteString("Реле",font_8x15_RU,1);									
+							
+							triangle_left(55,0);
+							triangle_right(60,0);																								
+							//triangle_up(58,38);
+							//triangle_down(58,43);
+							
+							if (channel_485_ON == 1) 
+							{
+								ssd1306_SetCursor(0,15);						
+								strncpy(msg,"Аттрибут события", 16);						
+								string_scroll(msg, 16);
+								ssd1306_WriteString(" 1",font_8x14,1);
+								
+								ssd1306_SetCursor(0,32);														
+								snprintf(buffer, sizeof buffer, "0x%X", trigger_event_attribute);			
+								ssd1306_WriteString(buffer,font_8x14,1); //Рабочий режим
+							}						
+							else if (channel_485_ON == 2) // ЗСК
+							{
+								ssd1306_SetCursor(0,15);						
+								strncpy(msg,"Бит состояния", 13);						
+								string_scroll(msg, 13);
+								ssd1306_WriteString("(0-15)",font_8x14,1);
+								
+								ssd1306_SetCursor(0,32);														
+								snprintf(buffer, sizeof buffer, "0x%X", (uint16_t) trigger_485_ZSK);			
+								ssd1306_WriteString(buffer,font_8x14,1); //Рабочий режим							
+							}
 
-						disable_up_down_button = 1;
+							menu_edit_mode = 0 ; //Запрещаем редактирование						
+							
+							//ssd1306_UpdateScreen();			
+
+							disable_up_down_button = 1;
 					}						
 					
 					if (menu_index_pointer == 4 && menu_horizontal == 2 && menu_edit_settings_mode == 0) //Аттрибут события 485 пред. уставка
 					{
-						ssd1306_Fill(0);
-						ssd1306_SetCursor(0,0);												
-						ssd1306_WriteString("Реле",font_8x15_RU,1);			
+							ssd1306_Fill(0);
+							ssd1306_SetCursor(0,0);												
+							ssd1306_WriteString("Реле",font_8x15_RU,1);			
 
-						triangle_left(55,0);
-						triangle_right(60,0);																								
-						//triangle_up(58,38);
-						//triangle_down(58,43);
-						
-						ssd1306_SetCursor(0,15);	
-						
-						strncpy(msg,"Аттрибут события", 16);						
-						string_scroll(msg, 16);
-						ssd1306_WriteString(" 2",font_8x14,1);
-						
-						ssd1306_SetCursor(0,32);														
-						snprintf(buffer, sizeof buffer, "0x%X", trigger_485_event_attribute_warning);			
-						ssd1306_WriteString(buffer,font_8x14,1); //Рабочий режим
+							triangle_left(55,0);
+							//triangle_right(60,0);																								
+							//triangle_up(58,38);
+							//triangle_down(58,43);
+							
+							if (channel_485_ON == 1) 
+							{
+								ssd1306_SetCursor(0,15);	
+								
+								strncpy(msg,"Аттрибут события", 16);						
+								string_scroll(msg, 16);
+								ssd1306_WriteString(" 2",font_8x14,1);
+								
+								ssd1306_SetCursor(0,32);														
+								snprintf(buffer, sizeof buffer, "0x%X", trigger_485_event_attribute_warning);			
+								ssd1306_WriteString(buffer,font_8x14,1); //Рабочий режим
+							}
+							else if (channel_485_ON == 2) // ЗСК
+							{
+								ssd1306_SetCursor(0,15);						
+								strncpy(msg,"Бит состояния", 13);						
+								string_scroll(msg, 13);
+								ssd1306_WriteString("(16-31)",font_8x14,1);
+								
+								ssd1306_SetCursor(0,32);														
+								snprintf(buffer, sizeof buffer, "0x%X", (uint16_t) (trigger_485_ZSK >> 16));			
+								ssd1306_WriteString(buffer,font_8x14,1); //Рабочий режим							
+							}						
 
-						menu_edit_mode = 0 ; //Запрещаем редактирование
-						
-						//ssd1306_UpdateScreen();		
+							menu_edit_mode = 0 ; //Запрещаем редактирование
+							
+							//ssd1306_UpdateScreen();		
 
-						disable_up_down_button = 1;
+							disable_up_down_button = 1;
 					}						
 					
-					if (menu_index_pointer == 4 && menu_horizontal == 3 && menu_edit_settings_mode == 0) //Аттрибут события 485 авар. уставка
-					{
-						ssd1306_Fill(0);
-						ssd1306_SetCursor(0,0);												
-						ssd1306_WriteString("Реле",font_8x15_RU,1);			
-						
-						triangle_left(55,0);																														
-						//triangle_up(58,38);
-						//triangle_down(58,43);
-						
-						ssd1306_SetCursor(0,15);						
-						strncpy(msg,"Аттрибут события", 16);						
-						string_scroll(msg, 16);
-						ssd1306_WriteString(" 3",font_8x14,1);
-						
-						ssd1306_SetCursor(0,32);														
-						snprintf(buffer, sizeof buffer, "0x%X", trigger_485_event_attribute_emerg);			
-						ssd1306_WriteString(buffer,font_8x14,1); //Рабочий режим
+//					if (menu_index_pointer == 4 && menu_horizontal == 3 && menu_edit_settings_mode == 0) //Аттрибут события 485 авар. уставка
+//					{
+//						ssd1306_Fill(0);
+//						ssd1306_SetCursor(0,0);												
+//						ssd1306_WriteString("Реле",font_8x15_RU,1);			
+//						
+//						triangle_left(55,0);																														
+//						//triangle_up(58,38);
+//						//triangle_down(58,43);
+//						
+//						ssd1306_SetCursor(0,15);						
+//						strncpy(msg,"Аттрибут события", 16);						
+//						string_scroll(msg, 16);
+//						ssd1306_WriteString(" 3",font_8x14,1);
+//						
+//						ssd1306_SetCursor(0,32);														
+//						snprintf(buffer, sizeof buffer, "0x%X", trigger_485_event_attribute_emerg);			
+//						ssd1306_WriteString(buffer,font_8x14,1); //Рабочий режим
 
-						menu_edit_mode = 0 ; //Запрещаем редактирование
-						
-						//ssd1306_UpdateScreen();				
-						
-						disable_up_down_button = 1;
-					}							
+//						menu_edit_mode = 0 ; //Запрещаем редактирование
+//						
+//						//ssd1306_UpdateScreen();				
+//						
+//						disable_up_down_button = 1;
+//					}							
 					
 					//Режим редактирования настроек реле
 					if (menu_index_pointer == 4 && menu_horizontal == 1 && menu_edit_settings_mode == 1) //Режим работы реле

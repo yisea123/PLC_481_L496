@@ -224,6 +224,16 @@
           <WinNumber>2</WinNumber>
           <ItemText>settings[31]</ItemText>
         </Ww>
+        <Ww>
+          <count>7</count>
+          <WinNumber>2</WinNumber>
+          <ItemText>menu_485_points_for_showing</ItemText>
+        </Ww>
+        <Ww>
+          <count>8</count>
+          <WinNumber>2</WinNumber>
+          <ItemText>&amp;trigger_485_ZSK</ItemText>
+        </Ww>
       </WatchWindow2>
       <MemoryWindow1>
         <Mm>
