@@ -4215,9 +4215,9 @@ void Master_Modbus_Receive(void const * argument)
 				}
 				
 				//Вычисляем проценты по CRC
-				mb_master_crc_error_percent = (float32_t) mb_master_crc_error * 100.0 / mb_master_response;				
-				if (mb_master_crc_error_percent < 0) mb_master_crc_error_percent = 0;
-				if (mb_master_crc_error_percent > 100) mb_master_crc_error_percent = 100;
+				mb_master_crc_error_percent = mb_master_crc_error * 100.0 / (float32_t) mb_master_response;				
+				if (mb_master_crc_error_percent < 0.01) mb_master_crc_error_percent = 0;				
+				if (mb_master_crc_error_percent > 100.0) mb_master_crc_error_percent = 100;
 				
 				//Счетчик всех ответов
 				mb_master_response++;			
@@ -4370,6 +4370,8 @@ void Data_Storage_Task(void const * argument)
 		settings[70] = trigger_485_event_attribute_warning;
 		settings[71] = trigger_485_event_attribute_emerg;
 		settings[73] = break_sensor_485; 
+		
+		
 		convert_float_and_swap(mb_master_crc_error_percent, &temp[0]);	
 		settings[74] = temp[0];
 		settings[75] = temp[1];
