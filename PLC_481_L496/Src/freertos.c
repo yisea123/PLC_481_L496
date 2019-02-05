@@ -4216,7 +4216,7 @@ void Master_Modbus_Receive(void const * argument)
 				
 				//Вычисляем проценты по CRC
 				mb_master_crc_error_percent = mb_master_crc_error * 100.0 / (float32_t) mb_master_response;				
-				if (mb_master_crc_error_percent < 0.01) mb_master_crc_error_percent = 0;				
+				if (mb_master_crc_error_percent < 0.1) mb_master_crc_error_percent = 0;				
 				if (mb_master_crc_error_percent > 100.0) mb_master_crc_error_percent = 100;
 				
 				//Счетчик всех ответов
@@ -5007,8 +5007,13 @@ void TriggerLogic_Task(void const * argument)
 							}
 							
 							if (i >= 5 && i < 10) 
-							{
-								if ((ZSK_trigger_array_previous[i] == 0) && (ZSK_trigger_array[i] != 0)) trigger_485_ZSK_percent = 15;								
+							{								
+								if ((ZSK_trigger_array_previous[i] == 0) && (ZSK_trigger_array[i] != 0)) 								
+								{
+									if (trigger_485_ZSK_percent < 50) trigger_485_ZSK_percent = 50; //Базис								
+									
+									trigger_485_ZSK_percent += 5;								
+								}
 							}
 							
 							if (i >= 10 && i < 26) 
@@ -5026,6 +5031,7 @@ void TriggerLogic_Task(void const * argument)
 						else if (trigger_485_ZSK_percent > 100) trigger_485_ZSK_percent = 100;
 						
 						if ( (x_axis & y_axis) ||  (x_axis & z_axis) || (y_axis & z_axis) )	trigger_485_ZSK_percent = 100;
+						
 						
 						//Если было событие, сохраняем регистр состояния на flash
 						if (trigger_485_ZSK_percent_prev != trigger_485_ZSK_percent) 
