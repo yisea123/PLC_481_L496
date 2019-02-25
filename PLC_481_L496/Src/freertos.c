@@ -4517,7 +4517,8 @@ void Data_Storage_Task(void const * argument)
 				master_array[i].master_warning_set = convert_hex_to_float(&settings[REG_485_START_ADDR + STRUCTURE_SIZE*i + 16], 0);	
 				master_array[i].master_emergency_set = convert_hex_to_float(&settings[REG_485_START_ADDR + STRUCTURE_SIZE*i + 18], 0);			
 				
-				settings[REG_485_START_ADDR + STRUCTURE_SIZE*i + 20] = master_array[i].status; 
+				//settings[REG_485_START_ADDR + STRUCTURE_SIZE*i + 20] = master_array[i].status; 
+				settings[REG_485_START_ADDR + STRUCTURE_SIZE*i + 20] = master_delay_status_485_array[i].status;
 		}
 
 
