@@ -134,19 +134,23 @@
 #define SLAVE_ADR slave_adr
 #define SLAVE_BAUDRATE baud_rate_uart_2
 
-#define TIME_BREAK_SENSOR_485 15
+#define TIME_BREAK_SENSOR_485 15 //сек.
 
-#define VERSION 5.13
+#define VERSION 5.22
 
 #define REG_485_QTY 40
 #define REG_485_START_ADDR 144
 #define STRUCTURE_SIZE 20 //Размер структуры для канала 485
+
+#define ZSK_REG_485_QTY 32		 
+#define MOVING_AVERAGE 1 //Вкл. усреднение ЗСК
 
 #define TOC_QUEUE_LENGHT (25600 / ADC_BUFFER_SIZE)
 
 #define REG_COUNT (REG_485_START_ADDR + (REG_485_QTY * STRUCTURE_SIZE))
 
 void convert_float_and_swap(float32_t float_in, uint16_t* int_out);
+void convert_float_and_swap2(float32_t* float_in, uint16_t* int_out);
 float32_t convert_hex_to_float(uint16_t* in, uint8_t index);
 void read_init_settings(void);
 
@@ -163,7 +167,7 @@ struct mb_master_delay_relay
 extern struct mb_master_delay_relay master_delay_relay_array[REG_485_QTY];
 
 #define BUTTON_SENSE 5 //Чувствительность нажатия на кнопку
-#define QUIT_TIMER 2 //Таймер нечувствительности (квитирование реле) 
+#define QUIT_TIMER 1 //Таймер нечувствительности (квитирование реле) 
 
 #define BOOT_START_ADDRESS 0x8004000
 #define BOOT_CRC_ADR 0x8003000
@@ -172,6 +176,8 @@ extern struct mb_master_delay_relay master_delay_relay_array[REG_485_QTY];
 #define APP_START_ADDRESS 0x8010000
 #define APP_CRC_ADR 0x8003800
 #define APP_SIZE 0x8003820
+
+#define ZSK_STATE_REG 0x8034000 //(104*2048)
 
 /* USER CODE END Private defines */
 

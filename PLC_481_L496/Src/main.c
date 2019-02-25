@@ -197,6 +197,9 @@ extern uint16_t bunch_count_2;
 extern xSemaphoreHandle Semaphore_Acceleration;
 
 extern uint8_t worker_status;
+
+extern uint16_t size_moving_average_ZSK;
+extern uint64_t trigger_485_ZSK; 
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -407,8 +410,9 @@ void convert_float_and_swap(float32_t float_in, uint16_t* int_out)
 
 	temp = int_out[0];
 	int_out[0] = int_out[1];	
-	int_out[1] = temp;	
+	int_out[1] = temp;		
 }	
+
 
 void convert_to_swFloat(float32_t float_in, uint16_t* int_out)
 {	
@@ -440,12 +444,14 @@ void convert_double_and_swap(float64_t double_in, uint16_t* int_out)
 
 float32_t convert_hex_to_float(uint16_t* in, uint8_t index)
 {	
+	taskENTER_CRITICAL();
 	float32_t out = 0.0;
 	
 	uint32_t tmp = (in[index] << 16) + in[index+1];	
 	memcpy(&out, &tmp, sizeof out);	
-	
+	taskEXIT_CRITICAL();
 	return out;
+	
 }
 
 
@@ -484,6 +490,11 @@ void read_init_settings(void)
 	range_icp = convert_hex_to_float(&settings[0], 20); 	
 	icp_menu_points_for_showing = settings[29]; 	
 
+	trigger_485_ZSK = read_flash(0x8034000); //32 бита
+	//trigger_485_ZSK |= read_flash(0x8034004);
+	
+	size_moving_average_ZSK = settings[33];
+	if ( size_moving_average_ZSK < 1 || size_moving_average_ZSK > 512 ) size_moving_average_ZSK = 1;
 	
 	lo_warning_420 = convert_hex_to_float(&settings[0], 38); 	
 	hi_warning_420 = convert_hex_to_float(&settings[0], 40); 	

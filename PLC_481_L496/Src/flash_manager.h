@@ -15,7 +15,7 @@ typedef struct
 uint8_t read_registers_from_flash(uint16_t* data_out);
 uint8_t write_registers_to_flash(uint16_t* data);
 uint16_t crc16(uint8_t *adr_buffer, uint32_t byte_cnt);
-
+uint8_t write_reg_flash(uint32_t page, uint64_t data, uint32_t size);
 	
 
 

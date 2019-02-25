@@ -99,7 +99,7 @@ xSemaphoreHandle 	Semaphore1, Semaphore2,
 									Semaphore_Master_Modbus_Rx, Semaphore_Master_Modbus_Tx,
 									Semaphore_Relay_1, Semaphore_Relay_2,
 									Semaphore_HART_Receive, Semaphore_HART_Transmit,
-									Mutex_Setting,
+									Mutex_Setting, Mutex_Average,
 									Semaphore_TBUS_Modbus_Rx, Semaphore_TBUS_Modbus_Tx, 
 									Semaphore_Bootloader_Update, Semaphore_Bootloader_Erase;
 									
@@ -184,14 +184,14 @@ int16_t settings[REG_COUNT]; //массив настроек
 uint8_t button_state = 0;
 
 uint8_t transmitBuffer[REG_COUNT*2+5];
-uint8_t receiveBuffer[16];
+uint8_t receiveBuffer[256];
 uint8_t boot_receiveBuffer[128];
 uint8_t master_transmitBuffer[8];
-uint8_t master_receiveBuffer[255];
+uint8_t master_receiveBuffer[256];
 uint8_t HART_receiveBuffer[16];
 uint8_t HART_transmitBuffer[8];
 uint8_t TBUS_transmitBuffer[REG_COUNT*2+5];
-uint8_t TBUS_receiveBuffer[16];
+uint8_t TBUS_receiveBuffer[256];
 
 uint8_t hart_switch_on = 0;
 uint16_t hart_slave_address = 0;
@@ -276,17 +276,32 @@ uint8_t master_response_received_id = 0;
 
 static TaskHandle_t xTask18 = NULL;
 
-volatile uint64_t mb_master_timeout_error = 0;
-volatile float32_t mb_master_timeout_error_percent = 0;
-volatile uint64_t mb_master_crc_error = 0;
-volatile float32_t mb_master_crc_error_percent = 0;
-volatile uint64_t mb_master_request = 0;
-volatile uint64_t mb_master_response = 0;
+uint64_t mb_master_timeout_error = 0;
+float32_t mb_master_timeout_error_percent = 0;
+uint64_t mb_master_crc_error = 0;
+float32_t mb_master_crc_error_percent = 0;
+uint64_t mb_master_request = 0;
+uint64_t mb_master_response = 0;
 
-volatile TickType_t xTimeOutBefore, xTotalTimeOutSuspended;
+TickType_t xTimeOutBefore, xTotalTimeOutSuspended;
 
 uint16_t trigger_485_event_attribute_warning = 0;
 uint16_t trigger_485_event_attribute_emerg = 0;
+
+uint32_t trigger_485_event_attribute_xtd1 = 0;
+uint32_t trigger_485_event_attribute_xtd2 = 0;
+uint32_t trigger_485_event_attribute_xtd3 = 0;
+
+uint64_t trigger_485_ZSK = 0; 
+uint64_t trigger_485_ZSK_previous = 0; 
+uint16_t trigger_485_ZSK_percent = 0;
+uint16_t trigger_485_ZSK_percent_prev = 0;
+uint64_t ZSK_trigger_array[ZSK_REG_485_QTY];
+uint64_t ZSK_trigger_array_previous[ZSK_REG_485_QTY];
+
+volatile int x_axis = 0;
+volatile int y_axis = 0; 
+volatile int z_axis = 0;
 
 //Реле
 uint8_t state_emerg_relay = 0;
@@ -367,6 +382,7 @@ float32_t baud_rate_uart_3 = 115200; //slave (TBUS)
 uint8_t bootloader_state = 0;
 extern uint32_t boot_timer_counter;	
 uint16_t trigger_event_attribute = 0;
+uint32_t trigger_485_mode_2 = 0;
 
 
 uint16_t channel_ICP_ON = 0;
@@ -459,6 +475,14 @@ volatile uint8_t status = 0;
 volatile uint8_t status1 = 0;
 volatile uint8_t status2 = 0;
 volatile uint8_t status3 = 0;
+
+uint16_t size_moving_average_ZSK;
+float32_t* zsk_average_array[ZSK_REG_485_QTY]; 
+float32_t average_result = 0.0;
+
+//volatile uint16_t reg_lost_packet = 0;
+volatile uint16_t reg_lost_packet[REG_485_QTY];
+
 
 /* USER CODE END Variables */
 osThreadId defaultTaskHandle;
@@ -612,7 +636,12 @@ void MX_FREERTOS_Init(void) {
 	Q_2peak_array_4_20 = pvPortMalloc( sizeof(float32_t)*QUEUE_LENGHT_4_20 );
 	
 	
-	
+	//Выделяем память под двумерный массив для усреднения (ЗСК)
+	for (int i=0; i < ZSK_REG_485_QTY; i++) 
+	{
+		zsk_average_array[i] = (float32_t*) pvPortMalloc( size_moving_average_ZSK * sizeof(float32_t) );		
+	}
+		
 	acceleration_queue_icp = xQueueCreate(QUEUE_LENGHT, sizeof(float32_t));	
 	velocity_queue_icp = xQueueCreate(QUEUE_LENGHT, sizeof(float32_t));
 	displacement_queue_icp = xQueueCreate(QUEUE_LENGHT, sizeof(float32_t));	
@@ -651,6 +680,7 @@ void MX_FREERTOS_Init(void) {
 	vSemaphoreCreateBinary(Semaphore_TBUS_Modbus_Tx);
 	vSemaphoreCreateBinary(Semaphore_Bootloader_Update);
 	vSemaphoreCreateBinary(Semaphore_Bootloader_Erase);
+	Mutex_Average = xSemaphoreCreateMutex();       
   /* USER CODE END Init */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -1502,7 +1532,7 @@ void Display_Task(void const * argument)
 					
 					if (menu_index_pointer == 4) //Реле
 					{						
-						if (menu_edit_settings_mode == 0) horizont_menu_lenght = 3;
+						if (menu_edit_settings_mode == 0) horizont_menu_lenght = 2;
 						else horizont_menu_lenght = 4;	
 					}
 					
@@ -1606,7 +1636,7 @@ void Display_Task(void const * argument)
 						button_center_pressed_in_long = 0;
 						button_center_pressed_in_short = 0;
 						menu_edit_settings_mode = 0;
-						quit_relay_button = 1; //Включаем таймер чтоб не срабатывало квитирование						
+						quit_relay_button = 1; //Включаем таймер чтобы не срабатывало квитирование						
 					}
 					
 					
@@ -2480,7 +2510,7 @@ void Display_Task(void const * argument)
 					}
 					
 //////////485 menu		
-					if (channel_485_ON == 1)
+					if ( (channel_485_ON == 1) || (channel_485_ON == 2) )
 					{
 						
 							
@@ -2490,6 +2520,15 @@ void Display_Task(void const * argument)
 								ssd1306_Fill(0);
 								ssd1306_SetCursor(0,0);												
 								ssd1306_WriteString("485",font_8x14,1);		
+								
+								if (channel_485_ON == 2) // ЗСК
+								{
+									ssd1306_Fill(0);
+									ssd1306_SetCursor(0,0);												
+									ssd1306_WriteString("ТИК",font_8x15_RU,1);		
+									ssd1306_SetCursor(28,0);												
+									ssd1306_WriteString("ЗСК",font_8x15_RU,1);		
+								}
 								
 								if (menu_edit_settings_mode == 0)
 								{									
@@ -2521,7 +2560,18 @@ void Display_Task(void const * argument)
 								{	
 										ssd1306_SetCursor(0,15);
 										
-										//if (menu_485_points_for_showing != 0)	
+										if (channel_485_ON == 2) // ЗСК	
+										{										
+											
+											strncpy(msg,"Состояние", 9);						
+											string_scroll(msg, 9);	
+											
+											ssd1306_SetCursor(0,32);				
+											snprintf(buffer, sizeof buffer, "%d %%", trigger_485_ZSK_percent);
+											ssd1306_WriteString(buffer,font_8x14,1);
+											
+										}
+										else
 										{
 											strncpy(msg,"Значение регистра ", 18);
 											string_scroll_with_number(msg, 18, menu_485_points_for_showing);					
@@ -2538,7 +2588,7 @@ void Display_Task(void const * argument)
 											}
 											
 											ssd1306_WriteString(buffer,font_8x14,1);											
-										}		
+										}											
 
 								}
 								
@@ -3058,84 +3108,113 @@ void Display_Task(void const * argument)
 					
 					if (menu_index_pointer == 4 && menu_horizontal == 1 && menu_edit_settings_mode == 0) //Аттрибут события ICP, 4-20
 					{
-						ssd1306_Fill(0);												
-						ssd1306_SetCursor(0,0);												
-						ssd1306_WriteString("Реле",font_8x15_RU,1);									
-						
-						triangle_left(55,0);
-						triangle_right(60,0);																								
-						//triangle_up(58,38);
-						//triangle_down(58,43);
-						
-						ssd1306_SetCursor(0,15);						
-						strncpy(msg,"Аттрибут события", 16);						
-						string_scroll(msg, 16);
-						ssd1306_WriteString(" 1",font_8x14,1);
-						
-						ssd1306_SetCursor(0,32);														
-						snprintf(buffer, sizeof buffer, "0x%X", trigger_event_attribute);			
-						ssd1306_WriteString(buffer,font_8x14,1); //Рабочий режим
 
-						menu_edit_mode = 0 ; //Запрещаем редактирование						
-						
-						ssd1306_UpdateScreen();			
+							ssd1306_Fill(0);												
+							ssd1306_SetCursor(0,0);												
+							ssd1306_WriteString("Реле",font_8x15_RU,1);									
+							
+							triangle_left(55,0);
+							triangle_right(60,0);																								
+							//triangle_up(58,38);
+							//triangle_down(58,43);
+							
+							if (channel_485_ON == 1) 
+							{
+								ssd1306_SetCursor(0,15);						
+								strncpy(msg,"Аттрибут события", 16);						
+								string_scroll(msg, 16);
+								ssd1306_WriteString(" 1",font_8x14,1);
+								
+								ssd1306_SetCursor(0,32);														
+								snprintf(buffer, sizeof buffer, "0x%X", trigger_event_attribute);			
+								ssd1306_WriteString(buffer,font_8x14,1); //Рабочий режим
+							}						
+							else if (channel_485_ON == 2) // ЗСК
+							{
+								ssd1306_SetCursor(0,15);						
+								strncpy(msg,"Бит состояния", 13);						
+								string_scroll(msg, 13);
+								ssd1306_WriteString("(0-15)",font_8x14,1);
+								
+								ssd1306_SetCursor(0,32);														
+								snprintf(buffer, sizeof buffer, "0x%X", (uint16_t) trigger_485_ZSK);			
+								ssd1306_WriteString(buffer,font_8x14,1); //Рабочий режим							
+							}
 
-						disable_up_down_button = 1;
+							menu_edit_mode = 0 ; //Запрещаем редактирование						
+							
+							//ssd1306_UpdateScreen();			
+
+							disable_up_down_button = 1;
 					}						
 					
 					if (menu_index_pointer == 4 && menu_horizontal == 2 && menu_edit_settings_mode == 0) //Аттрибут события 485 пред. уставка
 					{
-						ssd1306_Fill(0);
-						ssd1306_SetCursor(0,0);												
-						ssd1306_WriteString("Реле",font_8x15_RU,1);			
+							ssd1306_Fill(0);
+							ssd1306_SetCursor(0,0);												
+							ssd1306_WriteString("Реле",font_8x15_RU,1);			
 
-						triangle_left(55,0);
-						triangle_right(60,0);																								
-						//triangle_up(58,38);
-						//triangle_down(58,43);
-						
-						ssd1306_SetCursor(0,15);	
-						
-						strncpy(msg,"Аттрибут события", 16);						
-						string_scroll(msg, 16);
-						ssd1306_WriteString(" 2",font_8x14,1);
-						
-						ssd1306_SetCursor(0,32);														
-						snprintf(buffer, sizeof buffer, "0x%X", trigger_485_event_attribute_warning);			
-						ssd1306_WriteString(buffer,font_8x14,1); //Рабочий режим
+							triangle_left(55,0);
+							//triangle_right(60,0);																								
+							//triangle_up(58,38);
+							//triangle_down(58,43);
+							
+							if (channel_485_ON == 1) 
+							{
+								ssd1306_SetCursor(0,15);	
+								
+								strncpy(msg,"Аттрибут события", 16);						
+								string_scroll(msg, 16);
+								ssd1306_WriteString(" 2",font_8x14,1);
+								
+								ssd1306_SetCursor(0,32);														
+								snprintf(buffer, sizeof buffer, "0x%X", trigger_485_event_attribute_warning);			
+								ssd1306_WriteString(buffer,font_8x14,1); //Рабочий режим
+							}
+							else if (channel_485_ON == 2) // ЗСК
+							{
+								ssd1306_SetCursor(0,15);						
+								strncpy(msg,"Бит состояния", 13);						
+								string_scroll(msg, 13);
+								ssd1306_WriteString("(16-31)",font_8x14,1);
+								
+								ssd1306_SetCursor(0,32);														
+								snprintf(buffer, sizeof buffer, "0x%X", (uint16_t) (trigger_485_ZSK >> 16));			
+								ssd1306_WriteString(buffer,font_8x14,1); //Рабочий режим							
+							}						
 
-						menu_edit_mode = 0 ; //Запрещаем редактирование
-						
-						//ssd1306_UpdateScreen();		
+							menu_edit_mode = 0 ; //Запрещаем редактирование
+							
+							//ssd1306_UpdateScreen();		
 
-						disable_up_down_button = 1;
+							disable_up_down_button = 1;
 					}						
 					
-					if (menu_index_pointer == 4 && menu_horizontal == 3 && menu_edit_settings_mode == 0) //Аттрибут события 485 авар. уставка
-					{
-						ssd1306_Fill(0);
-						ssd1306_SetCursor(0,0);												
-						ssd1306_WriteString("Реле",font_8x15_RU,1);			
-						
-						triangle_left(55,0);																														
-						//triangle_up(58,38);
-						//triangle_down(58,43);
-						
-						ssd1306_SetCursor(0,15);						
-						strncpy(msg,"Аттрибут события", 16);						
-						string_scroll(msg, 16);
-						ssd1306_WriteString(" 3",font_8x14,1);
-						
-						ssd1306_SetCursor(0,32);														
-						snprintf(buffer, sizeof buffer, "0x%X", trigger_485_event_attribute_emerg);			
-						ssd1306_WriteString(buffer,font_8x14,1); //Рабочий режим
+//					if (menu_index_pointer == 4 && menu_horizontal == 3 && menu_edit_settings_mode == 0) //Аттрибут события 485 авар. уставка
+//					{
+//						ssd1306_Fill(0);
+//						ssd1306_SetCursor(0,0);												
+//						ssd1306_WriteString("Реле",font_8x15_RU,1);			
+//						
+//						triangle_left(55,0);																														
+//						//triangle_up(58,38);
+//						//triangle_down(58,43);
+//						
+//						ssd1306_SetCursor(0,15);						
+//						strncpy(msg,"Аттрибут события", 16);						
+//						string_scroll(msg, 16);
+//						ssd1306_WriteString(" 3",font_8x14,1);
+//						
+//						ssd1306_SetCursor(0,32);														
+//						snprintf(buffer, sizeof buffer, "0x%X", trigger_485_event_attribute_emerg);			
+//						ssd1306_WriteString(buffer,font_8x14,1); //Рабочий режим
 
-						menu_edit_mode = 0 ; //Запрещаем редактирование
-						
-						//ssd1306_UpdateScreen();				
-						
-						disable_up_down_button = 1;
-					}							
+//						menu_edit_mode = 0 ; //Запрещаем редактирование
+//						
+//						//ssd1306_UpdateScreen();				
+//						
+//						disable_up_down_button = 1;
+//					}							
 					
 					//Режим редактирования настроек реле
 					if (menu_index_pointer == 4 && menu_horizontal == 1 && menu_edit_settings_mode == 1) //Режим работы реле
@@ -3794,7 +3873,7 @@ void Modbus_Receive_Task(void const * argument)
 		
 		if (bootloader_state == 0x00)
 		{
-			HAL_UART_Receive_DMA(&huart2, receiveBuffer, 16);					
+			HAL_UART_Receive_DMA(&huart2, receiveBuffer, 256);					
 			
 			if (receiveBuffer[1] == 0x62 && receiveBuffer[2] == 0x6F && receiveBuffer[3] == 0x6F && receiveBuffer[4] == 0x74)
 			{
@@ -3842,6 +3921,7 @@ void Modbus_Transmit_Task(void const * argument)
 	volatile uint16_t recieve_calculated_crc = 0;
 	volatile uint16_t recieve_actual_crc = 0;
 	volatile uint16_t outer_register = 0;
+	volatile uint16_t number_of_bytes_further = 0;
 	
   /* Infinite loop */
   for(;;)
@@ -3858,8 +3938,9 @@ void Modbus_Transmit_Task(void const * argument)
 				//Если 16 функция, другая длина пакета
 				if (receiveBuffer[1] == 0x10) 
 				{
-					recieve_calculated_crc = crc16(receiveBuffer, 11);
-					recieve_actual_crc = (receiveBuffer[12] << 8) + receiveBuffer[11];
+					number_of_bytes_further = receiveBuffer[6]; 
+					recieve_calculated_crc = crc16(receiveBuffer, 7 + number_of_bytes_further);
+					recieve_actual_crc = (receiveBuffer[7 + number_of_bytes_further + 1] << 8) + receiveBuffer[7 + number_of_bytes_further];
 				}
 				
 				//Проверяем crc
@@ -3867,10 +3948,11 @@ void Modbus_Transmit_Task(void const * argument)
 				{	
 						transmitBuffer[0] = receiveBuffer[0]; //адрес устр-ва			
 						transmitBuffer[1] = receiveBuffer[1]; //номер функции						
-					
+											
 						adr_of_registers = (receiveBuffer[2] << 8) + receiveBuffer[3];//получаем адрес регистра				
 						count_registers = (receiveBuffer[4] << 8) + receiveBuffer[5]; //получаем кол-во регистров из запроса
 						outer_register = adr_of_registers + count_registers; //крайний регистр
+					
 						
 						transmitBuffer[2] = count_registers*2; //количество байт	(в два раза больше чем регистров)	
 					
@@ -3960,8 +4042,11 @@ void Modbus_Transmit_Task(void const * argument)
 									}
 									else if (settings[107] == -7035) //Если изменяем регистры, то надо снять блокировку (Рег.108 = 0xE485)
 									{
-										settings[adr_of_registers] = (receiveBuffer[7] << 8) + receiveBuffer[8]; 										
-										settings[adr_of_registers+1] = (receiveBuffer[9] << 8) + receiveBuffer[10];										
+										for (uint16_t i=adr_of_registers, j=0; i < outer_register; i++, j=j+2)
+										{
+											settings[i] = (receiveBuffer[7 + j] << 8) + receiveBuffer[8 + j]; 										
+											//settings[adr_of_registers+1] = (receiveBuffer[9] << 8) + receiveBuffer[10];										
+										}
 									}
 									
 
@@ -4045,7 +4130,7 @@ void Master_Modbus_Receive(void const * argument)
   {
 		
 		xSemaphoreTake( Semaphore_Master_Modbus_Rx, portMAX_DELAY );					
-				
+		
 		__HAL_UART_CLEAR_IT(&huart1, UART_CLEAR_IDLEF); 				
 		__HAL_UART_ENABLE_IT(&huart1, UART_IT_IDLE);
 		
@@ -4053,13 +4138,12 @@ void Master_Modbus_Receive(void const * argument)
 
 		HAL_UART_Receive_DMA(&huart1, master_receive_buffer, 9); 
 		
-		if (master_receive_buffer[0] == master_array[master_response_received_id].master_addr)
+		if (master_receive_buffer[0] == master_array[master_response_received_id].master_addr) //адрес
 		{						
 				f_number = master_receive_buffer[1]; //номер функции	
 				byte_number = master_receive_buffer[2];//кол-во байт
-						
 			
-				//считаем crc
+				//считаем CRC
 				calculated_crc = crc16(master_receive_buffer, 3 + byte_number);										
 				actual_crc = master_receive_buffer[3 + byte_number];
 				actual_crc += master_receive_buffer[3 + byte_number + 1] << 8;
@@ -4072,12 +4156,15 @@ void Master_Modbus_Receive(void const * argument)
 								{	
 									master_array[master_response_received_id].master_value = (master_receive_buffer[3] << 8 ) + master_receive_buffer[4];
 								}
+								
 								if ( master_array[master_response_received_id].master_type == 1 ) //Тип данных, Float (ABCD)
 								{
 									temp_data[0] = (master_receive_buffer[3] << 8 ) + master_receive_buffer[4];
 									temp_data[1] = (master_receive_buffer[5] << 8 ) + master_receive_buffer[6];
 									master_array[master_response_received_id].master_value = convert_hex_to_float(&temp_data[0], 0);
 								}								
+								
+								
 								if ( master_array[master_response_received_id].master_type == 2 || master_array[master_response_received_id].master_type == 5) //Тип данных, Int
 								{									
 									rawValue = (master_receive_buffer[3] << 8 ) + master_receive_buffer[4];
@@ -4091,6 +4178,7 @@ void Master_Modbus_Receive(void const * argument)
 										master_array[master_response_received_id].master_value = rawValue | ~((1 << 15) - 1);
 									}
 								}
+								
 								if ( master_array[master_response_received_id].master_type == 3 ) //Тип данных, Abs. int
 								{									
 									rawValue = (master_receive_buffer[3] << 8 ) + master_receive_buffer[4];
@@ -4106,11 +4194,13 @@ void Master_Modbus_Receive(void const * argument)
 									}
 								}
 
+								
 								if ( master_array[master_response_received_id].master_type == 4 ) //Тип данных, swFloat (swap words CDAB)
-								{
+								{									
 									temp_data[0] = (master_receive_buffer[5] << 8 ) + master_receive_buffer[6];
 									temp_data[1] = (master_receive_buffer[3] << 8 ) + master_receive_buffer[4];
-									master_array[master_response_received_id].master_value = convert_hex_to_float(&temp_data[0], 0);
+									
+									master_array[master_response_received_id].master_value = convert_hex_to_float(&temp_data[0], 0);																		
 								}									
 						}
 						
@@ -4130,12 +4220,15 @@ void Master_Modbus_Receive(void const * argument)
 					mb_master_crc_error++;						
 				}
 				
-				mb_master_crc_error_percent = (float32_t) mb_master_crc_error * 100.0 / mb_master_response;
+				//Вычисляем проценты по CRC
+				mb_master_crc_error_percent = mb_master_crc_error * 100.0 / (float32_t) mb_master_response;				
+				if (mb_master_crc_error_percent < 0.1) mb_master_crc_error_percent = 0;				
+				if (mb_master_crc_error_percent > 100.0) mb_master_crc_error_percent = 100;
 				
 				//Счетчик всех ответов
 				mb_master_response++;			
 		}
-			
+
     
   }
   /* USER CODE END Master_Modbus_Receive */
@@ -4154,61 +4247,68 @@ void Master_Modbus_Transmit(void const * argument)
 	uint16_t crc = 0;
 	TimeOut_t xTimeOut;
 		
-	xTask18 = xTaskGetCurrentTaskHandle();
+	
 	
   /* Infinite loop */
   for(;;)
   {
+
+		xTask18 = xTaskGetCurrentTaskHandle();	
 		
 		for(uint8_t i=0; i< REG_485_QTY; i++)
 		{	
-				master_transmit_buffer[0] = master_array[i].master_addr;
-				master_transmit_buffer[1] = master_array[i].master_func;
-				master_transmit_buffer[2] = (master_array[i].master_numreg - 1) >> 8; 		//Смещение адреса, т.к. регистр номер 1 равно адресу 0.
-				master_transmit_buffer[3] = (master_array[i].master_numreg - 1) & 0x00FF;
-				master_transmit_buffer[4] = 0;			
-				if (master_array[i].master_type == 0) master_transmit_buffer[5] = 1;
-				else master_transmit_buffer[5] = 2;				
-						
-				crc = crc16(master_transmit_buffer, 6);				
-						
-				master_transmit_buffer[6] = crc;
-				master_transmit_buffer[7] = crc >> 8;
-				
-				master_response_received_id = i;
-
 			
 				if ( master_array[i].master_on == 1) //Если регистр выключен, то запрашиваем следующий		
-				{					
-					
-					HAL_UART_Transmit_DMA(&huart1, master_transmit_buffer, 8);
-					
-					//Счетчик запросов
-					mb_master_request++;
+				{				
+						master_transmit_buffer[0] = master_array[i].master_addr;
+						master_transmit_buffer[1] = master_array[i].master_func;
+						master_transmit_buffer[2] = (master_array[i].master_numreg - 1) >> 8; 		//Смещение адреса, т.к. регистр номер 1 равно адресу 0.
+						master_transmit_buffer[3] = (master_array[i].master_numreg - 1) & 0x00FF;
+						master_transmit_buffer[4] = 0;			
+						if (master_array[i].master_type == 0) master_transmit_buffer[5] = 1;
+						else master_transmit_buffer[5] = 2;				
+								
+						crc = crc16(master_transmit_buffer, 6);				
+								
+						master_transmit_buffer[6] = crc;
+						master_transmit_buffer[7] = crc >> 8;
+						
+						master_response_received_id = i;
 
 					
-					//Фиксируем время для расчета таймаута					
-					xTimeOutBefore = xTaskGetTickCount();			
+						HAL_UART_Transmit_DMA(&huart1, master_transmit_buffer, 8);
 					
-					//Ждем уведомление о получении ответа, либо ошибка по таймауту
-					ulTaskNotifyTake( pdTRUE, master_array[i].request_timeout ); 
-					
-					//Проверка таймаута
-					xTotalTimeOutSuspended = xTaskGetTickCount() - xTimeOutBefore;					
-					
-					if ( xTotalTimeOutSuspended >= master_array[i].request_timeout ) 
-					{
-						mb_master_timeout_error++;											
-					}
-					
-					mb_master_timeout_error_percent = (float32_t) mb_master_timeout_error * 100.0 / mb_master_request; 						
-					
+						//Счетчик запросов
+						mb_master_request++;
+
+						
+						//Фиксируем время для расчета таймаута					
+						xTimeOutBefore = xTaskGetTickCount();			
+						
+						//Ждем уведомление о получении ответа, либо ошибка по таймауту
+						ulTaskNotifyTake( pdTRUE, master_array[i].request_timeout ); 
+						
+						//Проверка таймаута
+						xTotalTimeOutSuspended = xTaskGetTickCount() - xTimeOutBefore;					
+						
+						if ( xTotalTimeOutSuspended >= master_array[i].request_timeout ) 
+						{
+							reg_lost_packet[i] += 1;
+							mb_master_timeout_error++;											
+						}
+						
+						//Вычисляем проценты по таймауту
+						mb_master_timeout_error_percent = (float32_t) mb_master_timeout_error * 100.0 / mb_master_request; 		
+						if (mb_master_timeout_error_percent < 0) mb_master_timeout_error_percent = 0;
+						if (mb_master_timeout_error_percent > 100) mb_master_timeout_error_percent = 100;
+						
+						osDelay(3); //Silent time/delay between modbus request (must 3.5 char)
 				}				
 		}
-		
-		//Общий интервал опроса всех регистров
+			
+		//Период опроса всех регистров, мс
 		osDelay(mb_master_timeout);
-    
+	    
   }
   /* USER CODE END Master_Modbus_Transmit */
 }
@@ -4249,6 +4349,9 @@ void Data_Storage_Task(void const * argument)
 		settings[26] = temp[0];
 		settings[27] = temp[1];
 		
+		settings[30] = trigger_485_ZSK; 				//Младшие биты
+		settings[31] = trigger_485_ZSK >> 16;		//Старшие биты
+		settings[32] = trigger_485_ZSK_percent;
 		
 		
 		convert_float_and_swap(mean_4_20, &temp[0]);		
@@ -4273,6 +4376,8 @@ void Data_Storage_Task(void const * argument)
 		settings[70] = trigger_485_event_attribute_warning;
 		settings[71] = trigger_485_event_attribute_emerg;
 		settings[73] = break_sensor_485; 
+		
+		
 		convert_float_and_swap(mb_master_crc_error_percent, &temp[0]);	
 		settings[74] = temp[0];
 		settings[75] = temp[1];
@@ -4280,7 +4385,15 @@ void Data_Storage_Task(void const * argument)
 		settings[76] = temp[0];
 		settings[77] = temp[1];	
 		
-		convert_float_and_swap((mb_master_request - mb_master_response), &temp[0]);	
+		if ( mb_master_request > mb_master_response )
+		{
+			convert_float_and_swap((mb_master_request - mb_master_response), &temp[0]);				
+		}
+		else 
+		{
+			convert_float_and_swap(0, &temp[0]);				
+		}
+		
 		settings[78] = temp[0];
 		settings[79] = temp[1];	
 
@@ -4324,6 +4437,8 @@ void Data_Storage_Task(void const * argument)
 		settings[132] = temp[0];
 		settings[133] = temp[1];
 
+		
+
 		convert_float_and_swap(turnover_count_60s, &temp[0]);	
 		settings[136] = temp[0];
 		settings[137] = temp[1];
@@ -4331,8 +4446,34 @@ void Data_Storage_Task(void const * argument)
 
 	
 		if (menu_edit_mode == 0)
-		for (uint8_t i = 0; i < REG_485_QTY; i++)
+		for (uint16_t i = 0; i < REG_485_QTY; i++)
 		{			
+						
+				if (channel_485_ON == 2) //Специальный режим работы для системы ЗСК	
+				if(MOVING_AVERAGE == 1) //Расчитываем скользящее среднее и перезаписываем значение с учетом усреднения (ЗСК)		
+				if (i < 15) //Усредняем только вибропараметры
+				{												
+						average_result = 0.0;																	
+					
+						//Сдвигаем массив для записи нового элемента
+						for (int y = 1; y < size_moving_average_ZSK; y++)				
+						{
+								zsk_average_array[i][y-1] = zsk_average_array[i][y];
+						}						
+						
+						//Записываем новое значение 
+						zsk_average_array[i][size_moving_average_ZSK - 1] = master_array[i].master_value;
+						
+						//Расчитываем среднее
+						for (int j = 0; j < size_moving_average_ZSK; j++)				
+						{
+								average_result += zsk_average_array[i][j] / size_moving_average_ZSK;
+						}
+						
+						master_array[i].master_value = average_result;
+				}			
+			
+			
 				master_array[i].master_on = settings[REG_485_START_ADDR + STRUCTURE_SIZE*i + 0];
 				master_array[i].master_addr = settings[REG_485_START_ADDR + STRUCTURE_SIZE*i + 1];
 				master_array[i].master_numreg = settings[REG_485_START_ADDR + STRUCTURE_SIZE*i + 2];
@@ -4348,12 +4489,15 @@ void Data_Storage_Task(void const * argument)
 				{
 					settings[REG_485_START_ADDR + STRUCTURE_SIZE*i + 10] = master_array[i].master_value; 
 				}
+				
+								
 				if (master_array[i].master_type == 1 || master_array[i].master_type == 4) //Тип, float 
 				{					
 					convert_float_and_swap(master_array[i].master_value, &temp[0]);	 
 					settings[REG_485_START_ADDR + STRUCTURE_SIZE*i + 10] = temp[0];
-					settings[REG_485_START_ADDR + STRUCTURE_SIZE*i + 11] = temp[1];
+					settings[REG_485_START_ADDR + STRUCTURE_SIZE*i + 11] = temp[1];		
 				}
+				
 				if (master_array[i].master_type == 2 || master_array[i].master_type == 3) //Тип, int
 				{
 					settings[REG_485_START_ADDR + STRUCTURE_SIZE*i + 10] = (int16_t) master_array[i].master_value; 
@@ -4367,14 +4511,11 @@ void Data_Storage_Task(void const * argument)
 		}
 
 
-
 		//Применение/запись настроек + запись метрологических коэф.
 		if (settings[107] == 481) //0x1E1 int16 Big Endian (AB)
 		{		
-			
-			//xSemaphoreTake( Mutex_Setting, portMAX_DELAY );
-						
-			settings[107] = 0x0;
+									
+			settings[107] = 0x00;
 			
 			taskENTER_CRITICAL(); 						
 			st_flash = write_registers_to_flash(settings);						
@@ -4392,10 +4533,8 @@ void Data_Storage_Task(void const * argument)
 		//Применение/запись настроек без метрологии 
 		if (settings[107] == -21555) //0xABCD int16 Big Endian (AB)
 		{		
-			
-			//xSemaphoreTake( Mutex_Setting, portMAX_DELAY );
 						
-			settings[107] = 0x0;			
+			settings[107] = 0x00;			
 
 			convert_float_and_swap(icp_coef_K, &temp[0]);			
 			settings[15] = temp[0];  
@@ -4479,7 +4618,7 @@ void Data_Storage_Task(void const * argument)
 		}
 		
 		
-    osDelay(100);
+    osDelay(10);
   }
   /* USER CODE END Data_Storage_Task */
 }
@@ -4627,7 +4766,7 @@ void TriggerLogic_Task(void const * argument)
 				if (channel_485_ON == 1)
 				{		
 
-						for (volatile uint8_t i = 0; i< REG_485_QTY; i++)
+						for (uint8_t i = 0; i< REG_485_QTY; i++)
 						{
 								if (master_array[i].master_on == 1)
 								{			
@@ -4682,6 +4821,237 @@ void TriggerLogic_Task(void const * argument)
 						
 				}
 				
+				
+				if (channel_485_ON == 2) //Специальный режим работы для системы ЗСК
+				{
+					
+						for (uint8_t i = 0; i < ZSK_REG_485_QTY; i++)
+						{
+								if (master_array[i].master_on == 1)
+								{			
+									
+										if ((i >= 0) && (i < 15)) //Регистры с вибропараметрами
+										{
+											
+												//Нижняя предупредительная уставка
+												if (master_array[i].master_value >= master_array[i].low_master_warning_set || break_sensor_485 == 1) 
+												{											
+													
+													if (i == 0 || i == 1 || i == 2) trigger_485_ZSK |= (1<<0);
+													if (i == 3 || i == 4 || i == 5) trigger_485_ZSK |= (1<<1);											
+													if (i == 6 || i == 7 || i == 8) trigger_485_ZSK |= (1<<2);											
+													if (i == 9 || i == 10 || i == 11) trigger_485_ZSK |= (1<<3);
+													if (i == 12 || i == 13 || i == 14) trigger_485_ZSK |= (1<<4);														
+
+												}												
+												
+												//Предупредительная уставка											
+												if (master_array[i].master_value >= master_array[i].master_warning_set || break_sensor_485 == 1) 
+												{
+													
+														master_delay_relay_array[i].flag_delay_relay_1 = 1;
+														
+														if (master_delay_relay_array[i].relay_permission_1 == 1)
+														{															
+															if (i == 0 || i == 1 || i == 2) trigger_485_ZSK |= (1<<5);
+															if (i == 3 || i == 4 || i == 5) trigger_485_ZSK |= (1<<6);
+															if (i == 6 || i == 7 || i == 8) trigger_485_ZSK |= (1<<7);
+															if (i == 9 || i == 10 || i == 11) trigger_485_ZSK |= (1<<8);
+															if (i == 12 || i == 13 || i == 14) trigger_485_ZSK |= (1<<9);																															
+															
+															state_warning_relay = 1;
+															flag_for_delay_relay_exit = 1;							
+															xSemaphoreGive( Semaphore_Relay_1 );																
+														}
+												}	
+												else if (master_array[i].master_value < master_array[i].master_warning_set) 						
+												{
+														master_delay_relay_array[i].timer_delay_relay_1 = 0;
+														master_delay_relay_array[i].relay_permission_1 = 0;	
+														master_delay_relay_array[i].flag_delay_relay_1 = 0;											
+												}
+										
+										
+										
+												//Аварийная уставка
+												if (master_array[i].master_value >= master_array[i].master_emergency_set || break_sensor_485 == 1) 
+												{											
+													master_delay_relay_array[i].flag_delay_relay_2 = 1;
+													
+													if (master_delay_relay_array[i].relay_permission_2 == 1)
+													{
+														
+															if (i == 0) trigger_485_ZSK |= (1<<10);
+															if (i == 1) trigger_485_ZSK |= (1<<11);
+															if (i == 2) trigger_485_ZSK |= (1<<12);
+															
+															if (i == 3) trigger_485_ZSK |= (1<<13);
+															if (i == 4) trigger_485_ZSK |= (1<<14);
+															if (i == 5) trigger_485_ZSK |= (1<<15);
+															
+															if (i == 6) trigger_485_ZSK |= (1<<16);
+															if (i == 7) trigger_485_ZSK |= (1<<17);
+															if (i == 8) trigger_485_ZSK |= (1<<18);
+															
+															if (i == 9) trigger_485_ZSK |= (1<<19);
+															if (i == 10) trigger_485_ZSK |= (1<<20);
+															if (i == 11) trigger_485_ZSK |= (1<<21);												
+															
+															if (i == 12) trigger_485_ZSK |= (1<<22);
+															if (i == 13) trigger_485_ZSK |= (1<<23);
+															if (i == 14) trigger_485_ZSK |= (1<<24);																								
+
+															
+															//Проверка на срабатывание по осям	
+															x_axis = (((trigger_485_ZSK & (1<<10)) != 0) ||
+															((trigger_485_ZSK & (1<<13)) != 0) ||
+															((trigger_485_ZSK & (1<<16)) != 0) ||
+															((trigger_485_ZSK & (1<<19)) != 0) ||
+															((trigger_485_ZSK & (1<<22)) != 0));
+															
+															y_axis = (((trigger_485_ZSK & (1<<11)) != 0) ||
+															((trigger_485_ZSK & (1<<14)) != 0) ||
+															((trigger_485_ZSK & (1<<17)) != 0) ||
+															((trigger_485_ZSK & (1<<20)) != 0) ||
+															((trigger_485_ZSK & (1<<23)) != 0));
+															
+															z_axis = (((trigger_485_ZSK & (1<<12)) != 0) ||
+															((trigger_485_ZSK & (1<<15)) != 0) ||
+															((trigger_485_ZSK & (1<<18)) != 0) ||
+															((trigger_485_ZSK & (1<<21)) != 0) ||
+															((trigger_485_ZSK & (1<<24)) != 0));												
+															
+
+															if ( (x_axis & y_axis) ||  (x_axis & z_axis) || (y_axis & z_axis) )												
+															{
+																state_emerg_relay = 1;
+																flag_for_delay_relay_exit = 1;
+																xSemaphoreGive( Semaphore_Relay_2 );							
+															}														
+													}
+												}	
+												else if (master_array[i].master_value < master_array[i].master_emergency_set)						
+												{
+														master_delay_relay_array[i].timer_delay_relay_2 = 0;
+														master_delay_relay_array[i].relay_permission_2 = 0;	
+														master_delay_relay_array[i].flag_delay_relay_2 = 0; 											
+												}
+
+										}
+										else if (i >= 15) //Регистры с углами
+										{
+												//Предупредительная уставка											
+												if (master_array[i].master_value >= master_array[i].master_warning_set || master_array[i].master_value <= master_array[i].low_master_warning_set || break_sensor_485 == 1) 
+												{
+													
+														master_delay_relay_array[i].flag_delay_relay_1 = 1;
+														
+														if (master_delay_relay_array[i].relay_permission_1 == 1)
+														{
+											
+															if (i == 15 || i == 16 || i == 17) trigger_485_ZSK |= (1<<25);																	
+															
+															state_warning_relay = 1;
+															flag_for_delay_relay_exit = 1;							
+															xSemaphoreGive( Semaphore_Relay_1 );							
+														}
+												}	
+												else if (master_array[i].master_value < master_array[i].master_warning_set) 						
+												{
+														master_delay_relay_array[i].timer_delay_relay_1 = 0;
+														master_delay_relay_array[i].relay_permission_1 = 0;	
+														master_delay_relay_array[i].flag_delay_relay_1 = 0;											
+												}
+										
+										
+										
+												//Аварийная уставка
+												if (master_array[i].master_value >= master_array[i].master_emergency_set || master_array[i].master_value <= master_array[i].low_master_emergency_set || break_sensor_485 == 1) 
+												{											
+													master_delay_relay_array[i].flag_delay_relay_2 = 1;
+													
+													if (master_delay_relay_array[i].relay_permission_2 == 1)
+													{
+															
+															if (i == 15) trigger_485_ZSK |= (1<<26);
+															if (i == 16) trigger_485_ZSK |= (1<<27);
+															if (i == 17) trigger_485_ZSK |= (1<<28);																								
+
+															
+															if ( ((trigger_485_ZSK & (1<<26)) != 0) || ((trigger_485_ZSK & (1<<27)) != 0) || ((trigger_485_ZSK & (1<<28)) != 0)  )
+															{
+																state_emerg_relay = 1;
+																flag_for_delay_relay_exit = 1;	
+																xSemaphoreGive( Semaphore_Relay_2 );							
+															}
+													}
+												}	
+												else if (master_array[i].master_value < master_array[i].master_emergency_set)						
+												{
+														master_delay_relay_array[i].timer_delay_relay_2 = 0;
+														master_delay_relay_array[i].relay_permission_2 = 0;	
+														master_delay_relay_array[i].flag_delay_relay_2 = 0; 											
+												}											
+										}										
+								}
+						}							
+						
+						
+						
+						//Обработка регистра состояния оборудования (расчет процента, биты -> проценты)						
+
+						for (int i = 0; i < ZSK_REG_485_QTY; i++) //Раскидываем биты по массиву
+						{
+							ZSK_trigger_array[i] = trigger_485_ZSK & (1<<i);
+						}
+						
+						for(int i = 0; i < ZSK_REG_485_QTY; i++) 
+						{
+							if (i >= 0 && i < 5) 
+							{
+								if ((ZSK_trigger_array_previous[i] == 0) && (ZSK_trigger_array[i] != 0)) trigger_485_ZSK_percent += 5;								
+							}
+							
+							if (i >= 5 && i < 10) 
+							{								
+								if ((ZSK_trigger_array_previous[i] == 0) && (ZSK_trigger_array[i] != 0)) 								
+								{
+									if (trigger_485_ZSK_percent < 50) trigger_485_ZSK_percent = 50; //Базис								
+									
+									trigger_485_ZSK_percent += 5;								
+								}
+							}
+							
+							if (i >= 10 && i < 26) 
+							{
+								if ((ZSK_trigger_array_previous[i] == 0) && (ZSK_trigger_array[i] != 0)) trigger_485_ZSK_percent = 90;								
+							}							
+							
+							if (i >= 26 && i < 29)
+							{
+								if ((ZSK_trigger_array_previous[i] == 0) && (ZSK_trigger_array[i] != 0)) trigger_485_ZSK_percent = 100;
+							}							
+						}
+						
+						if (trigger_485_ZSK_percent < 0)  trigger_485_ZSK_percent = 0;
+						else if (trigger_485_ZSK_percent > 100) trigger_485_ZSK_percent = 100;
+						
+						if ( (x_axis & y_axis) ||  (x_axis & z_axis) || (y_axis & z_axis) )	trigger_485_ZSK_percent = 100;
+						
+						
+						//Если было событие, сохраняем регистр состояния на flash
+						if (trigger_485_ZSK_percent_prev != trigger_485_ZSK_percent) 
+						{
+							write_reg_flash(104, trigger_485_ZSK, 1);
+							trigger_485_ZSK_percent_prev = trigger_485_ZSK_percent;
+						}
+						else trigger_485_ZSK_percent_prev = trigger_485_ZSK_percent;
+						
+						//Фиксируем текущее состояние, для того чтоб не было одновременных нескольких срабатываний при подъеме бита
+						memcpy(ZSK_trigger_array_previous, ZSK_trigger_array, sizeof(ZSK_trigger_array));
+				}					
+				
+				
 				if (mode_relay == 0)
 				{
 						//Сброс предупр. реле 
@@ -4732,7 +5102,18 @@ void TriggerLogic_Task(void const * argument)
 				menu_edit_mode = 0;
 			}
 			
-			quit_relay_button = 1;
+			quit_relay_button = 1;		
+
+			//Сброс битов в системе ЗСК
+			trigger_485_ZSK = 0;
+			trigger_485_ZSK_percent = 0;
+			x_axis = 0;
+			y_axis = 0;
+			z_axis = 0;			
+			settings[30] = 0;
+			settings[31] = 0;
+			settings[33] = 0;
+			
 		}
 		
 		//Контроль напряжения питания ПЛК (+24 )
@@ -4743,7 +5124,7 @@ void TriggerLogic_Task(void const * argument)
 		}
 		
 		
-    osDelay(50);
+    osDelay(10);
   }
   /* USER CODE END TriggerLogic_Task */
 }
@@ -5680,7 +6061,7 @@ void init_menu(uint8_t where_from) //Иниц. меню (1 - конфиг, т.е. зажата кнопка 
 		number_of_items_in_the_menu++;
 	}
 	
-	if (channel_485_ON == 1)
+	if (channel_485_ON == 1 || channel_485_ON == 2)
 	{
 		menu_index_array[number_of_items_in_the_menu] = items_menu_485;
 		number_of_items_in_the_menu++;
@@ -5786,6 +6167,8 @@ void save_settings(void)
 			ssd1306_WriteString(".",font_8x14,1);	
 			ssd1306_UpdateScreen();			
 			osDelay(2000);	
+	
+			menu_edit_mode = 0;
 	
 			//xSemaphoreGive( Mutex_Setting );
 			

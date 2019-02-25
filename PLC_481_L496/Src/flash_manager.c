@@ -180,6 +180,34 @@ uint8_t write_registers_to_flash(uint16_t* data)
 }
 
 
+uint8_t write_reg_flash(uint32_t page, uint64_t data, uint32_t size)
+{
+	volatile uint8_t status = 0;
+	//volatile uint16_t err = 0;
+	
+	uint32_t PAGEError = 0;
+	FLASH_EraseInitTypeDef EraseInitStruct;
+	
+	EraseInitStruct.TypeErase = FLASH_TYPEERASE_PAGES;
+	EraseInitStruct.Banks = 1;
+	EraseInitStruct.Page = page;	
+	EraseInitStruct.NbPages = 1;
+	
+	__HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_PGSERR);
+	status = HAL_FLASH_Unlock();	
+		
+	status = HAL_FLASHEx_Erase(&EraseInitStruct,&PAGEError);	
+		
+	if (status == 0)
+	{		
+		status = HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, (0x8000000 + (page * 2048)), data);			
+	}
+	
+	HAL_FLASH_Lock();
+
+	return status;	
+}
+
 
 uint16_t flash_crc16(uint32_t adr, uint32_t byte_cnt)
 {
