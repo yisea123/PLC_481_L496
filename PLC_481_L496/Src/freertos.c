@@ -184,14 +184,14 @@ int16_t settings[REG_COUNT]; //массив настроек
 uint8_t button_state = 0;
 
 uint8_t transmitBuffer[REG_COUNT*2+5];
-uint8_t receiveBuffer[16];
+uint8_t receiveBuffer[256];
 uint8_t boot_receiveBuffer[128];
 uint8_t master_transmitBuffer[8];
-uint8_t master_receiveBuffer[255];
+uint8_t master_receiveBuffer[256];
 uint8_t HART_receiveBuffer[16];
 uint8_t HART_transmitBuffer[8];
 uint8_t TBUS_transmitBuffer[REG_COUNT*2+5];
-uint8_t TBUS_receiveBuffer[16];
+uint8_t TBUS_receiveBuffer[256];
 
 uint8_t hart_switch_on = 0;
 uint16_t hart_slave_address = 0;
@@ -3873,7 +3873,7 @@ void Modbus_Receive_Task(void const * argument)
 		
 		if (bootloader_state == 0x00)
 		{
-			HAL_UART_Receive_DMA(&huart2, receiveBuffer, 16);					
+			HAL_UART_Receive_DMA(&huart2, receiveBuffer, 256);					
 			
 			if (receiveBuffer[1] == 0x62 && receiveBuffer[2] == 0x6F && receiveBuffer[3] == 0x6F && receiveBuffer[4] == 0x74)
 			{
@@ -3921,6 +3921,7 @@ void Modbus_Transmit_Task(void const * argument)
 	volatile uint16_t recieve_calculated_crc = 0;
 	volatile uint16_t recieve_actual_crc = 0;
 	volatile uint16_t outer_register = 0;
+	volatile uint16_t number_of_bytes_further = 0;
 	
   /* Infinite loop */
   for(;;)
@@ -3937,8 +3938,9 @@ void Modbus_Transmit_Task(void const * argument)
 				//Если 16 функция, другая длина пакета
 				if (receiveBuffer[1] == 0x10) 
 				{
-					recieve_calculated_crc = crc16(receiveBuffer, 11);
-					recieve_actual_crc = (receiveBuffer[12] << 8) + receiveBuffer[11];
+					number_of_bytes_further = receiveBuffer[6]; 
+					recieve_calculated_crc = crc16(receiveBuffer, 7 + number_of_bytes_further);
+					recieve_actual_crc = (receiveBuffer[7 + number_of_bytes_further + 1] << 8) + receiveBuffer[7 + number_of_bytes_further];
 				}
 				
 				//Проверяем crc
@@ -3946,10 +3948,11 @@ void Modbus_Transmit_Task(void const * argument)
 				{	
 						transmitBuffer[0] = receiveBuffer[0]; //адрес устр-ва			
 						transmitBuffer[1] = receiveBuffer[1]; //номер функции						
-					
+											
 						adr_of_registers = (receiveBuffer[2] << 8) + receiveBuffer[3];//получаем адрес регистра				
 						count_registers = (receiveBuffer[4] << 8) + receiveBuffer[5]; //получаем кол-во регистров из запроса
 						outer_register = adr_of_registers + count_registers; //крайний регистр
+					
 						
 						transmitBuffer[2] = count_registers*2; //количество байт	(в два раза больше чем регистров)	
 					
@@ -4039,8 +4042,11 @@ void Modbus_Transmit_Task(void const * argument)
 									}
 									else if (settings[107] == -7035) //Если изменяем регистры, то надо снять блокировку (Рег.108 = 0xE485)
 									{
-										settings[adr_of_registers] = (receiveBuffer[7] << 8) + receiveBuffer[8]; 										
-										settings[adr_of_registers+1] = (receiveBuffer[9] << 8) + receiveBuffer[10];										
+										for (uint16_t i=adr_of_registers, j=0; i < outer_register; i++, j=j+2)
+										{
+											settings[i] = (receiveBuffer[7 + j] << 8) + receiveBuffer[8 + j]; 										
+											//settings[adr_of_registers+1] = (receiveBuffer[9] << 8) + receiveBuffer[10];										
+										}
 									}
 									
 
