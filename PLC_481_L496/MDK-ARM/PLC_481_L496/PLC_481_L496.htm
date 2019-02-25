@@ -3,7 +3,7 @@
 <title>Static Call Graph - [PLC_481_L496\PLC_481_L496.axf]</title></head>
 <body><HR>
 <H1>Static Call Graph for image PLC_481_L496\PLC_481_L496.axf</H1><HR>
-<BR><P>#&#060CALLGRAPH&#062# ARM Linker, 5050106: Last Updated: Mon Feb 25 11:31:16 2019
+<BR><P>#&#060CALLGRAPH&#062# ARM Linker, 5050106: Last Updated: Mon Feb 25 13:36:31 2019
 <BR><P>
 <H3>Maximum Stack Usage =        704 bytes + Unknown(Cycles, Untraceable Function Pointers)</H3><H3>
 Call chain for Maximum Stack Depth:</H3>
@@ -2063,7 +2063,7 @@ Global Symbols
 <P><STRONG><a name="[65]"></a>SystemInit</STRONG> (Thumb, 56 bytes, Stack size 0 bytes, system_stm32l4xx.o(i.SystemInit))
 <BR>[Address Reference Count : 1]<UL><LI> startup_stm32l496xx.o(.text)
 </UL>
-<P><STRONG><a name="[89]"></a>TBUS_Modbus_Receive_Task</STRONG> (Thumb, 62 bytes, Stack size 0 bytes, freertos.o(i.TBUS_Modbus_Receive_Task))
+<P><STRONG><a name="[89]"></a>TBUS_Modbus_Receive_Task</STRONG> (Thumb, 66 bytes, Stack size 0 bytes, freertos.o(i.TBUS_Modbus_Receive_Task))
 <BR><BR>[Stack]<UL><LI>Max Depth = 112<LI>Call Chain = TBUS_Modbus_Receive_Task &rArr; xQueueGenericSend &rArr; xTaskResumeAll &rArr; xTaskIncrementTick
 </UL>
 <BR>[Calls]<UL><LI><a href="#[b6]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;xQueueSemaphoreTake
@@ -2073,8 +2073,8 @@ Global Symbols
 </UL>
 <BR>[Address Reference Count : 1]<UL><LI> freertos.o(.constdata)
 </UL>
-<P><STRONG><a name="[8a]"></a>TBUS_Modbus_Transmit_Task</STRONG> (Thumb, 602 bytes, Stack size 32 bytes, freertos.o(i.TBUS_Modbus_Transmit_Task))
-<BR><BR>[Stack]<UL><LI>Max Depth = 136<LI>Call Chain = TBUS_Modbus_Transmit_Task &rArr; xQueueSemaphoreTake &rArr; xTaskResumeAll &rArr; xTaskIncrementTick
+<P><STRONG><a name="[8a]"></a>TBUS_Modbus_Transmit_Task</STRONG> (Thumb, 646 bytes, Stack size 48 bytes, freertos.o(i.TBUS_Modbus_Transmit_Task))
+<BR><BR>[Stack]<UL><LI>Max Depth = 152<LI>Call Chain = TBUS_Modbus_Transmit_Task &rArr; xQueueSemaphoreTake &rArr; xTaskResumeAll &rArr; xTaskIncrementTick
 </UL>
 <BR>[Calls]<UL><LI><a href="#[143]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;crc16
 <LI><a href="#[b6]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;xQueueSemaphoreTake

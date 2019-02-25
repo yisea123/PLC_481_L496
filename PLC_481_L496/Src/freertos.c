@@ -5343,7 +5343,7 @@ void TBUS_Modbus_Receive_Task(void const * argument)
 		
 		HAL_UART_DMAStop(&huart3); 
 				
-		HAL_UART_Receive_DMA(&huart3, TBUS_receiveBuffer, 16);					
+		HAL_UART_Receive_DMA(&huart3, TBUS_receiveBuffer, 256);					
 			
 		xSemaphoreGive( Semaphore_TBUS_Modbus_Tx );
 						
@@ -5368,6 +5368,7 @@ void TBUS_Modbus_Transmit_Task(void const * argument)
 	volatile uint16_t recieve_calculated_crc = 0;
 	volatile uint16_t recieve_actual_crc = 0;
 	volatile uint16_t outer_register = 0;
+	volatile uint16_t number_of_bytes_further = 0;
 	
   /* Infinite loop */
   for(;;)
@@ -5384,8 +5385,9 @@ void TBUS_Modbus_Transmit_Task(void const * argument)
 				//Если 16 функция, другая длина пакета
 				if (TBUS_receiveBuffer[1] == 0x10) 
 				{
-					recieve_calculated_crc = crc16(TBUS_receiveBuffer, 11);
-					recieve_actual_crc = (TBUS_receiveBuffer[12] << 8) + TBUS_receiveBuffer[11];
+					number_of_bytes_further = TBUS_receiveBuffer[6];
+					recieve_calculated_crc = crc16(TBUS_receiveBuffer, 7 + number_of_bytes_further);
+					recieve_actual_crc = (TBUS_receiveBuffer[7 + number_of_bytes_further + 1] << 8) + TBUS_receiveBuffer[7 + number_of_bytes_further];
 				}
 				
 				//Проверяем crc
@@ -5488,8 +5490,11 @@ void TBUS_Modbus_Transmit_Task(void const * argument)
 									}
 									else if (settings[107] == -7035) //Если изменяем регистры, то надо снять блокировку (Рег.108 = 0xE485)
 									{
-										settings[adr_of_registers] = (TBUS_receiveBuffer[7] << 8) + TBUS_receiveBuffer[8]; 										
-										settings[adr_of_registers+1] = (TBUS_receiveBuffer[9] << 8) + TBUS_receiveBuffer[10];
+										for (uint16_t i=adr_of_registers, j=0; i < outer_register; i++, j=j+2)
+										{											
+											settings[i] = (TBUS_receiveBuffer[7 + j] << 8) + TBUS_receiveBuffer[8 + j]; 										
+											//settings[adr_of_registers+1] = (TBUS_receiveBuffer[9] << 8) + TBUS_receiveBuffer[10];
+										}
 									}										
 									
 
