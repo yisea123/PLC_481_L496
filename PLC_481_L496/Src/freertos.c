@@ -4218,6 +4218,7 @@ void Master_Modbus_Receive(void const * argument)
 						//Обнуляем таймер обрыва датчика 485
 						timer_485_counter = 0;
 						
+						//Регистр статуса параметра (1 - работа / 0 - обрыв)
 						master_delay_status_485_array[master_response_received_id].status = 1;
 						master_delay_status_485_array[master_response_received_id].delay = 0;
 						
@@ -4519,6 +4520,9 @@ void Data_Storage_Task(void const * argument)
 				
 				//settings[REG_485_START_ADDR + STRUCTURE_SIZE*i + 20] = master_array[i].status; 
 				settings[REG_485_START_ADDR + STRUCTURE_SIZE*i + 20] = master_delay_status_485_array[i].status;
+				
+				//Обнуляем значение параметра, если обрыв
+				if ( master_delay_status_485_array[i].status == 0 ) master_array[i].master_value = 0;
 		}
 
 
