@@ -136,11 +136,11 @@
 
 #define TIME_BREAK_SENSOR_485 15 //сек.
 
-#define VERSION 5.23
+#define VERSION 5.25
 
 #define REG_485_QTY 40
 #define REG_485_START_ADDR 144
-#define STRUCTURE_SIZE 20 //Размер структуры для канала 485
+#define STRUCTURE_SIZE 21 //Размер структуры для канала 485
 
 #define ZSK_REG_485_QTY 32		 
 #define MOVING_AVERAGE 1 //Вкл. усреднение ЗСК
@@ -165,6 +165,14 @@ struct mb_master_delay_relay
 };
 
 extern struct mb_master_delay_relay master_delay_relay_array[REG_485_QTY];
+
+struct master_delay_status_485
+{
+	uint8_t delay;
+	uint8_t status;
+};
+
+extern struct master_delay_status_485 master_delay_status_485_array[REG_485_QTY];
 
 #define BUTTON_SENSE 5 //Чувствительность нажатия на кнопку
 #define QUIT_TIMER 1 //Таймер нечувствительности (квитирование реле) 
