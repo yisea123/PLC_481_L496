@@ -262,11 +262,12 @@ struct mb_master
 	uint16_t request_timeout;							//5 
 	float32_t master_coef_A;							//6,7 
 	float32_t master_coef_B;							//8,9 
-	float32_t master_value;								//9,10 
-	float32_t master_warning_set;					//11,12 
-	float32_t master_emergency_set;				//13,14
-	float32_t low_master_warning_set;			//15,16 
-	float32_t low_master_emergency_set;		//17,18 
+	float32_t master_value;								//10,11 
+	float32_t master_warning_set;					//12,13 
+	float32_t master_emergency_set;				//14,15
+	float32_t low_master_warning_set;			//16,17 
+	float32_t low_master_emergency_set;		//18,19 
+	uint8_t status;												//20 
 };
 
 struct mb_master master_array[REG_485_QTY];
@@ -451,6 +452,8 @@ uint16_t impulse_sign = 0;
 uint16_t hysteresis_TOC = 0;
 
 struct mb_master_delay_relay master_delay_relay_array[REG_485_QTY];
+
+extern struct master_delay_status_485 master_delay_status_485_array[REG_485_QTY];          
 
 uint8_t QUEUE_LENGHT = 32;
 
@@ -1316,7 +1319,7 @@ void Lights_Task(void const * argument)
 
 			//Если реле не сработали и нет обрыва(по любому из каналов) и канал включен, то зажигаем зеленый
 		
-			if (( break_sensor_icp == 1 && channel_ICP_ON == 1) || (break_sensor_420 == 1 && channel_4_20_ON == 1) || (break_sensor_485 == 1 && channel_485_ON == 1 )) 
+			if (( break_sensor_icp == 1 && channel_ICP_ON == 1) || (break_sensor_420 == 1 && channel_4_20_ON == 1) || (break_sensor_485 == 0 && channel_485_ON == 1 )) 
 			{
 				//Горит красный
 				HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, GPIO_PIN_SET);
@@ -1329,7 +1332,7 @@ void Lights_Task(void const * argument)
 				HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, GPIO_PIN_SET);	
 			}
 			
-						
+			//Предупредительное			
 			if (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_6) == 1 && HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_7) == 0)
 			{								
 				//Мигает Синий 
@@ -1345,6 +1348,7 @@ void Lights_Task(void const * argument)
 				
 			}			
 			
+			//Аварийное
 			if (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_7) == 1)
 			{				
 				//Мигает Красный 
@@ -2544,7 +2548,7 @@ void Display_Task(void const * argument)
 									triangle_down(58,43);
 								}								
 														
-								if (break_sensor_485 == 1) //Символ обрыва
+								if (break_sensor_485 == 0) //Символ обрыва
 								{							
 										if (temp_stat_1 == 0) 
 										{
@@ -4210,9 +4214,13 @@ void Master_Modbus_Receive(void const * argument)
 						xTaskNotifyGive( xTask18 ); //Посылаем уведомление, если получен ответ 							
 						
 						//Устанавливаем признак "обрыва нет"
-						break_sensor_485 = 0;
+						break_sensor_485 = 1;
 						//Обнуляем таймер обрыва датчика 485
 						timer_485_counter = 0;
+						
+						master_delay_status_485_array[master_response_received_id].status = 1;
+						master_delay_status_485_array[master_response_received_id].delay = 0;
+						
 						
 				}
 				else 
@@ -4508,6 +4516,8 @@ void Data_Storage_Task(void const * argument)
 
 				master_array[i].master_warning_set = convert_hex_to_float(&settings[REG_485_START_ADDR + STRUCTURE_SIZE*i + 16], 0);	
 				master_array[i].master_emergency_set = convert_hex_to_float(&settings[REG_485_START_ADDR + STRUCTURE_SIZE*i + 18], 0);			
+				
+				settings[REG_485_START_ADDR + STRUCTURE_SIZE*i + 20] = master_array[i].status; 
 		}
 
 
@@ -4771,7 +4781,7 @@ void TriggerLogic_Task(void const * argument)
 								if (master_array[i].master_on == 1)
 								{			
 										//Предупредительная уставка
-										if (master_array[i].master_value >= master_array[i].master_warning_set || master_array[i].master_value <= master_array[i].low_master_warning_set || break_sensor_485 == 1) 
+										if (master_array[i].master_value >= master_array[i].master_warning_set || master_array[i].master_value <= master_array[i].low_master_warning_set || break_sensor_485 == 0) 
 										{
 											
 											master_delay_relay_array[i].flag_delay_relay_1 = 1;
@@ -4794,7 +4804,7 @@ void TriggerLogic_Task(void const * argument)
 										}
 										
 										//Аварийная уставка
-										if (master_array[i].master_value >= master_array[i].master_emergency_set || master_array[i].master_value <= master_array[i].low_master_emergency_set || break_sensor_485 == 1) 
+										if (master_array[i].master_value >= master_array[i].master_emergency_set || master_array[i].master_value <= master_array[i].low_master_emergency_set || break_sensor_485 == 0) 
 										{											
 											master_delay_relay_array[i].flag_delay_relay_2 = 1;
 											
