@@ -4135,7 +4135,7 @@ void Master_Modbus_Receive(void const * argument)
 		__HAL_UART_ENABLE_IT(&huart1, UART_IT_IDLE);
 		
 		HAL_UART_DMAStop(&huart1); 
-
+		
 		HAL_UART_Receive_DMA(&huart1, master_receive_buffer, 9); 
 		
 		if (master_receive_buffer[0] == master_array[master_response_received_id].master_addr) //адрес
@@ -4294,7 +4294,8 @@ void Master_Modbus_Transmit(void const * argument)
 						if ( xTotalTimeOutSuspended >= master_array[i].request_timeout ) 
 						{
 							reg_lost_packet[i] += 1;
-							mb_master_timeout_error++;											
+							mb_master_timeout_error++;						
+							master_array[i].master_value = 0;
 						}
 						
 						//Вычисляем проценты по таймауту
@@ -4507,7 +4508,10 @@ void Data_Storage_Task(void const * argument)
 				master_array[i].low_master_emergency_set = convert_hex_to_float(&settings[REG_485_START_ADDR + STRUCTURE_SIZE*i + 14], 0);	
 
 				master_array[i].master_warning_set = convert_hex_to_float(&settings[REG_485_START_ADDR + STRUCTURE_SIZE*i + 16], 0);	
-				master_array[i].master_emergency_set = convert_hex_to_float(&settings[REG_485_START_ADDR + STRUCTURE_SIZE*i + 18], 0);			
+				master_array[i].master_emergency_set = convert_hex_to_float(&settings[REG_485_START_ADDR + STRUCTURE_SIZE*i + 18], 0);	
+
+				
+				
 		}
 
 
