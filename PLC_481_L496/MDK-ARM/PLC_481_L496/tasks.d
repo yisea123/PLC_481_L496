@@ -5,7 +5,6 @@ plc_481_l496\tasks.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTO
 plc_481_l496\tasks.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stddef.h
 plc_481_l496\tasks.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdint.h
 plc_481_l496\tasks.o: ../Inc/FreeRTOSConfig.h
-plc_481_l496\tasks.o: ../Inc/main.h
 plc_481_l496\tasks.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/projdefs.h
 plc_481_l496\tasks.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/portable.h
 plc_481_l496\tasks.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/deprecated_definitions.h
@@ -14,4 +13,4 @@ plc_481_l496\tasks.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/mpu_wra
 plc_481_l496\tasks.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/task.h
 plc_481_l496\tasks.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/list.h
 plc_481_l496\tasks.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/timers.h
-plc_481_l496\tasks.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/StackMacros.h
+plc_481_l496\tasks.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/stack_macros.h
