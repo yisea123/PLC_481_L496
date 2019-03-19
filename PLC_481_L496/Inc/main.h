@@ -136,7 +136,7 @@
 
 #define TIME_BREAK_SENSOR_485 15 //сек.
 
-#define VERSION 5.3
+#define VERSION 5.31
 
 #define REG_485_QTY 40
 #define REG_485_START_ADDR 144

@@ -4838,7 +4838,7 @@ void TriggerLogic_Task(void const * argument)
 										{
 											
 												//Нижняя предупредительная уставка
-												if (master_array[i].master_value >= master_array[i].low_master_warning_set || break_sensor_485 == 1) 
+												if (master_array[i].master_value >= master_array[i].low_master_warning_set) 
 												{											
 													
 													if (i == 0 || i == 1 || i == 2) trigger_485_ZSK |= (1<<0);
@@ -4850,7 +4850,7 @@ void TriggerLogic_Task(void const * argument)
 												}												
 												
 												//Предупредительная уставка											
-												if (master_array[i].master_value >= master_array[i].master_warning_set || break_sensor_485 == 1) 
+												if (master_array[i].master_value >= master_array[i].master_warning_set) 
 												{
 													
 														master_delay_relay_array[i].flag_delay_relay_1 = 1;
@@ -4878,7 +4878,7 @@ void TriggerLogic_Task(void const * argument)
 										
 										
 												//Аварийная уставка
-												if (master_array[i].master_value >= master_array[i].master_emergency_set || break_sensor_485 == 1) 
+												if (master_array[i].master_value >= master_array[i].master_emergency_set) 
 												{											
 													master_delay_relay_array[i].flag_delay_relay_2 = 1;
 													
@@ -4945,7 +4945,7 @@ void TriggerLogic_Task(void const * argument)
 										else if (i >= 15) //Регистры с углами
 										{
 												//Предупредительная уставка											
-												if (master_array[i].master_value >= master_array[i].master_warning_set || master_array[i].master_value <= master_array[i].low_master_warning_set || break_sensor_485 == 1) 
+												if (master_array[i].master_value >= master_array[i].master_warning_set || master_array[i].master_value <= master_array[i].low_master_warning_set) 
 												{
 													
 														master_delay_relay_array[i].flag_delay_relay_1 = 1;
@@ -4970,7 +4970,7 @@ void TriggerLogic_Task(void const * argument)
 										
 										
 												//Аварийная уставка
-												if (master_array[i].master_value >= master_array[i].master_emergency_set || master_array[i].master_value <= master_array[i].low_master_emergency_set || break_sensor_485 == 1) 
+												if (master_array[i].master_value >= master_array[i].master_emergency_set || master_array[i].master_value <= master_array[i].low_master_emergency_set) 
 												{											
 													master_delay_relay_array[i].flag_delay_relay_2 = 1;
 													
@@ -5065,6 +5065,15 @@ void TriggerLogic_Task(void const * argument)
 						
 						//Фиксируем текущее состояние, для того чтоб не было одновременных нескольких срабатываний при подъеме бита
 						memcpy(ZSK_trigger_array_previous, ZSK_trigger_array, sizeof(ZSK_trigger_array));
+						
+						
+						//Обрыв датчика
+						if(break_sensor_485 == 1) 
+						{
+							state_emerg_relay = 1;							
+							xSemaphoreGive( Semaphore_Relay_2 );							
+						}
+						
 				}					
 				
 				
