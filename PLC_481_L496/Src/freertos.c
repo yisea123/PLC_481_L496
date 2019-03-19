@@ -4585,7 +4585,7 @@ void Data_Storage_Task(void const * argument)
 			{
 				if ( 	i == 15 || i == 17 || 
 							i == 51 || i == 53 ||
-							i == 90 || i == 92  )
+							i == 90 || i == 92 )
 				{				
 					settings[i] = settings[i];			
 				}
@@ -5013,7 +5013,10 @@ void TriggerLogic_Task(void const * argument)
 						{
 							if (i >= 0 && i < 5) 
 							{
-								if ((ZSK_trigger_array_previous[i] == 0) && (ZSK_trigger_array[i] != 0)) trigger_485_ZSK_percent += 5;								
+								if ((ZSK_trigger_array_previous[i] == 0) && (ZSK_trigger_array[i] != 0)) 
+								{
+									trigger_485_ZSK_percent += 5;								
+								}
 							}
 							
 							if (i >= 5 && i < 10) 
@@ -5028,19 +5031,28 @@ void TriggerLogic_Task(void const * argument)
 							
 							if (i >= 10 && i < 26) 
 							{
-								if ((ZSK_trigger_array_previous[i] == 0) && (ZSK_trigger_array[i] != 0)) trigger_485_ZSK_percent = 90;								
+								if ((ZSK_trigger_array_previous[i] == 0) && (ZSK_trigger_array[i] != 0)) 
+								{
+									trigger_485_ZSK_percent = 90;								
+								}
 							}							
 							
 							if (i >= 26 && i < 29)
 							{
-								if ((ZSK_trigger_array_previous[i] == 0) && (ZSK_trigger_array[i] != 0)) trigger_485_ZSK_percent = 100;
+								if ((ZSK_trigger_array_previous[i] == 0) && (ZSK_trigger_array[i] != 0)) 
+								{
+									trigger_485_ZSK_percent = 100;
+								}
 							}							
 						}
 						
 						if (trigger_485_ZSK_percent < 0)  trigger_485_ZSK_percent = 0;
 						else if (trigger_485_ZSK_percent > 100) trigger_485_ZSK_percent = 100;
 						
-						if ( (x_axis & y_axis) ||  (x_axis & z_axis) || (y_axis & z_axis) )	trigger_485_ZSK_percent = 100;
+						if ( (x_axis & y_axis) ||  (x_axis & z_axis) || (y_axis & z_axis) )	
+						{
+							trigger_485_ZSK_percent = 100;
+						}
 						
 						
 						//Если было событие, сохраняем регистр состояния на flash
@@ -5115,8 +5127,13 @@ void TriggerLogic_Task(void const * argument)
 			y_axis = 0;
 			z_axis = 0;			
 			settings[30] = 0;
-			settings[31] = 0;
-			settings[33] = 0;
+			settings[31] = 0;			
+			
+			//Чтоб пересчитывались проценты снова, при сбросе
+			for(int i = 0; i < ZSK_REG_485_QTY; i++) 
+			{				
+				ZSK_trigger_array_previous[i] = 0;
+			}
 			
 		}
 		
