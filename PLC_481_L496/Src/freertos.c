@@ -180,6 +180,7 @@ arm_biquad_casd_df1_inst_f32 filter_main_high_4_20;
 float32_t pStates_main_high_4_20[8];
 
 int16_t settings[REG_COUNT]; //массив настроек 
+int16_t mirror_values[MIRROR_COUNT]; //зеркало
 
 uint8_t button_state = 0;
 
@@ -482,6 +483,7 @@ float32_t average_result = 0.0;
 
 //volatile uint16_t reg_lost_packet = 0;
 volatile uint16_t reg_lost_packet[REG_485_QTY];
+
 
 
 /* USER CODE END Variables */
@@ -3977,7 +3979,7 @@ void Modbus_Transmit_Task(void const * argument)
 						{		
 									if (adr_of_registers < 125) //если кол-во регистров больше 125 (255 байт макс.), опрос идет несколькими запросами 
 									{							
-											for (volatile uint16_t i=adr_of_registers, j=0; i < outer_register; i++, j++)
+											for (uint16_t i=adr_of_registers, j=0; i < outer_register; i++, j++)
 											{
 												transmitBuffer[j*2+3] = settings[i] >> 8; //значение регистра Lo 		
 												transmitBuffer[j*2+4] = settings[i] & 0x00FF; //значение регистра Hi		
@@ -3993,10 +3995,21 @@ void Modbus_Transmit_Task(void const * argument)
 									}
 									else
 									{
-											for (uint16_t i=0, j=0; i < count_registers; i++, j++)
+											if (adr_of_registers < 944) //Основная группа регистров
 											{
-												transmitBuffer[j*2+3] = settings[adr_of_registers + i] >> 8; //значение регистра Lo 		
-												transmitBuffer[j*2+4] = settings[adr_of_registers + i] & 0x00FF; //значение регистра Hi		
+												for (uint16_t i=0, j=0; i < count_registers; i++, j++)
+												{
+													transmitBuffer[j*2+3] = settings[adr_of_registers + i] >> 8; //значение регистра Lo 		
+													transmitBuffer[j*2+4] = settings[adr_of_registers + i] & 0x00FF; //значение регистра Hi		
+												}
+											}
+											else //Зеркало (дублирование значение регистров 485 канала)
+											{
+												for (uint16_t i=0, j=0; i < MIRROR_COUNT; i++, j++)
+												{
+													transmitBuffer[j*2+3] = mirror_values[i] >> 8; //значение регистра Lo 		
+													transmitBuffer[j*2+4] = mirror_values[i] & 0x00FF; //значение регистра Hi		
+												}												
 											}
 									
 											crc = crc16(transmitBuffer, count_registers*2+3);				
@@ -4489,6 +4502,9 @@ void Data_Storage_Task(void const * argument)
 				if (master_array[i].master_type == 0) //Тип, dec
 				{
 					settings[REG_485_START_ADDR + STRUCTURE_SIZE*i + 10] = master_array[i].master_value; 
+					
+					//Копируем значения в зеркало
+					mirror_values[i*2] = master_array[i].master_value;
 				}
 				
 								
@@ -4497,11 +4513,18 @@ void Data_Storage_Task(void const * argument)
 					convert_float_and_swap(master_array[i].master_value, &temp[0]);	 
 					settings[REG_485_START_ADDR + STRUCTURE_SIZE*i + 10] = temp[0];
 					settings[REG_485_START_ADDR + STRUCTURE_SIZE*i + 11] = temp[1];		
+					
+					//Копируем значения в зеркало
+					mirror_values[i*2] = temp[0];
+					mirror_values[i*2+1] = temp[1];
 				}
 				
 				if (master_array[i].master_type == 2 || master_array[i].master_type == 3) //Тип, int
 				{
 					settings[REG_485_START_ADDR + STRUCTURE_SIZE*i + 10] = (int16_t) master_array[i].master_value; 
+					
+					//Копируем значения в зеркало
+					mirror_values[i*2] = (int16_t) master_array[i].master_value;
 				}
 
 				master_array[i].low_master_warning_set = convert_hex_to_float(&settings[REG_485_START_ADDR + STRUCTURE_SIZE*i + 12], 0);	

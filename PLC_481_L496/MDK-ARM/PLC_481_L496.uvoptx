@@ -150,7 +150,40 @@
           <Name>-U-O142 -O2254 -S0 -C0 -TO18 -TC10000000 -TP21 -TDS8007 -TDT0 -TDC1F -TIEFFFFFFFF -TIP8 -FO7 -FD20000000 -FC1000 -FN1 -FF0STM32L4xx_1024.FLM -FS08000000 -FL0100000 -FP0($$Device:STM32L496RG$Flash\STM32L4xx_1024.FLM)</Name>
         </SetRegEntry>
       </TargetDriverDllRegistry>
-      <Breakpoint/>
+      <Breakpoint>
+        <Bp>
+          <Number>0</Number>
+          <Type>0</Type>
+          <LineNumber>4008</LineNumber>
+          <EnabledFlag>1</EnabledFlag>
+          <Address>134324068</Address>
+          <ByteObject>0</ByteObject>
+          <HtxType>0</HtxType>
+          <ManyObjects>0</ManyObjects>
+          <SizeOfObject>0</SizeOfObject>
+          <BreakByAccess>0</BreakByAccess>
+          <BreakIfRCount>1</BreakIfRCount>
+          <Filename>../Src/freertos.c</Filename>
+          <ExecCommand></ExecCommand>
+          <Expression>\\\../Src/freertos.c\4008</Expression>
+        </Bp>
+        <Bp>
+          <Number>1</Number>
+          <Type>0</Type>
+          <LineNumber>4008</LineNumber>
+          <EnabledFlag>1</EnabledFlag>
+          <Address>134324072</Address>
+          <ByteObject>0</ByteObject>
+          <HtxType>0</HtxType>
+          <ManyObjects>0</ManyObjects>
+          <SizeOfObject>0</SizeOfObject>
+          <BreakByAccess>0</BreakByAccess>
+          <BreakIfRCount>1</BreakIfRCount>
+          <Filename>../Src/freertos.c</Filename>
+          <ExecCommand></ExecCommand>
+          <Expression>\\\../Src/freertos.c\4008</Expression>
+        </Bp>
+      </Breakpoint>
       <WatchWindow1>
         <Ww>
           <count>0</count>
@@ -187,42 +220,37 @@
           <WinNumber>1</WinNumber>
           <ItemText>mb_master_response,0x0A</ItemText>
         </Ww>
+        <Ww>
+          <count>7</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>settings</ItemText>
+        </Ww>
+        <Ww>
+          <count>8</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>\\PLC_481_L496\../Src/freertos.c\master_array</ItemText>
+        </Ww>
       </WatchWindow1>
       <WatchWindow2>
         <Ww>
           <count>0</count>
           <WinNumber>2</WinNumber>
-          <ItemText>size_moving_average_ZSK,0x0A</ItemText>
+          <ItemText>mirror_values</ItemText>
         </Ww>
         <Ww>
           <count>1</count>
           <WinNumber>2</WinNumber>
-          <ItemText>trigger_485_ZSK</ItemText>
+          <ItemText>master_array</ItemText>
         </Ww>
         <Ww>
           <count>2</count>
           <WinNumber>2</WinNumber>
-          <ItemText>state_warning_relay</ItemText>
+          <ItemText>\\PLC_481_L496\../Src/freertos.c\mirror_values</ItemText>
         </Ww>
         <Ww>
           <count>3</count>
           <WinNumber>2</WinNumber>
-          <ItemText>trigger_485_ZSK_percent</ItemText>
-        </Ww>
-        <Ww>
-          <count>4</count>
-          <WinNumber>2</WinNumber>
-          <ItemText>trigger_485_ZSK_percent_prev</ItemText>
-        </Ww>
-        <Ww>
-          <count>5</count>
-          <WinNumber>2</WinNumber>
-          <ItemText>ZSK_trigger_array</ItemText>
-        </Ww>
-        <Ww>
-          <count>6</count>
-          <WinNumber>2</WinNumber>
-          <ItemText>master_array</ItemText>
+          <ItemText>adr_of_registers,0x0A</ItemText>
         </Ww>
       </WatchWindow2>
       <MemoryWindow1>

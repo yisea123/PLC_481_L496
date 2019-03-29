@@ -3,7 +3,7 @@
 <title>Static Call Graph - [PLC_481_L496\PLC_481_L496.axf]</title></head>
 <body><HR>
 <H1>Static Call Graph for image PLC_481_L496\PLC_481_L496.axf</H1><HR>
-<BR><P>#&#060CALLGRAPH&#062# ARM Linker, 5050106: Last Updated: Tue Mar 19 18:52:11 2019
+<BR><P>#&#060CALLGRAPH&#062# ARM Linker, 5050106: Last Updated: Fri Mar 29 12:05:29 2019
 <BR><P>
 <H3>Maximum Stack Usage =        704 bytes + Unknown(Cycles, Untraceable Function Pointers)</H3><H3>
 Call chain for Maximum Stack Depth:</H3>
@@ -872,7 +872,7 @@ Global Symbols
 </UL>
 <BR>[Address Reference Count : 1]<UL><LI> startup_stm32l496xx.o(RESET)
 </UL>
-<P><STRONG><a name="[83]"></a>Data_Storage_Task</STRONG> (Thumb, 1620 bytes, Stack size 16 bytes, freertos.o(i.Data_Storage_Task))
+<P><STRONG><a name="[83]"></a>Data_Storage_Task</STRONG> (Thumb, 1646 bytes, Stack size 16 bytes, freertos.o(i.Data_Storage_Task))
 <BR><BR>[Stack]<UL><LI>Max Depth = 160<LI>Call Chain = Data_Storage_Task &rArr; write_registers_to_flash &rArr; write_flash &rArr; HAL_FLASH_Program &rArr; FLASH_WaitForLastOperation
 </UL>
 <BR>[Calls]<UL><LI><a href="#[c4]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;write_registers_to_flash
@@ -1959,7 +1959,7 @@ Global Symbols
 </UL>
 <BR>[Address Reference Count : 1]<UL><LI> freertos.o(.constdata)
 </UL>
-<P><STRONG><a name="[80]"></a>Modbus_Transmit_Task</STRONG> (Thumb, 630 bytes, Stack size 48 bytes, freertos.o(i.Modbus_Transmit_Task))
+<P><STRONG><a name="[80]"></a>Modbus_Transmit_Task</STRONG> (Thumb, 674 bytes, Stack size 48 bytes, freertos.o(i.Modbus_Transmit_Task))
 <BR><BR>[Stack]<UL><LI>Max Depth = 152<LI>Call Chain = Modbus_Transmit_Task &rArr; xQueueSemaphoreTake &rArr; xTaskResumeAll &rArr; xTaskIncrementTick
 </UL>
 <BR>[Calls]<UL><LI><a href="#[143]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;crc16
@@ -2130,7 +2130,7 @@ Global Symbols
 <BR>[Called By]<UL><LI><a href="#[73]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;StartDefaultTask
 </UL>
 
-<P><STRONG><a name="[84]"></a>TriggerLogic_Task</STRONG> (Thumb, 2644 bytes, Stack size 8 bytes, freertos.o(i.TriggerLogic_Task))
+<P><STRONG><a name="[84]"></a>TriggerLogic_Task</STRONG> (Thumb, 2678 bytes, Stack size 8 bytes, freertos.o(i.TriggerLogic_Task))
 <BR><BR>[Stack]<UL><LI>Max Depth = 120<LI>Call Chain = TriggerLogic_Task &rArr; write_reg_flash &rArr; HAL_FLASH_Program &rArr; FLASH_WaitForLastOperation
 </UL>
 <BR>[Calls]<UL><LI><a href="#[16c]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;write_reg_flash
