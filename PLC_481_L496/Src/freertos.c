@@ -4003,7 +4003,8 @@ void Modbus_Transmit_Task(void const * argument)
 													transmitBuffer[j*2+4] = settings[adr_of_registers + i] & 0x00FF; //значение регистра Hi		
 												}
 											}
-											else //Зеркало (дублирование значение регистров 485 канала)
+											
+											if (adr_of_registers > 944 && adr_of_registers < 1080)//Зеркало (дублирование значений регистров 485 канала)
 											{
 												for (uint16_t i=0, j=0; i < MIRROR_COUNT; i++, j++)
 												{
@@ -4011,6 +4012,15 @@ void Modbus_Transmit_Task(void const * argument)
 													transmitBuffer[j*2+4] = mirror_values[i] & 0x00FF; //значение регистра Hi		
 												}												
 											}
+											
+											if (adr_of_registers > 1080)	
+											{
+												for (uint16_t i=0, j=0; i < MIRROR_COUNT; i++, j++)
+												{
+													transmitBuffer[j*2+3] = 0; //значение регистра Lo 		
+													transmitBuffer[j*2+4] = 0; //значение регистра Hi		
+												}												
+											}												
 									
 											crc = crc16(transmitBuffer, count_registers*2+3);				
 									
