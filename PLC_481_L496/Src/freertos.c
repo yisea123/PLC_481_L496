@@ -4004,9 +4004,9 @@ void Modbus_Transmit_Task(void const * argument)
 												}
 											}
 											
-											if (adr_of_registers > 944 && adr_of_registers < 1080)//Зеркало (дублирование значений регистров 485 канала)
+											if (adr_of_registers > 944 )//Зеркало (дублирование значений регистров 485 канала)
 											{
-												for (uint16_t i=0, j=0; i < MIRROR_COUNT; i++, j++)
+												for (volatile uint16_t i=0, j=0; i < MIRROR_COUNT; i++, j++)
 												{
 													transmitBuffer[j*2+3] = mirror_values[i] >> 8; //значение регистра Lo 		
 													transmitBuffer[j*2+4] = mirror_values[i] & 0x00FF; //значение регистра Hi		
@@ -5502,10 +5502,31 @@ void TBUS_Modbus_Transmit_Task(void const * argument)
 									}
 									else
 									{
-											for (uint16_t i=0, j=0; i < count_registers; i++, j++)
+											if (adr_of_registers < 944)
 											{
-												TBUS_transmitBuffer[j*2+3] = settings[adr_of_registers + i] >> 8; //значение регистра Lo 		
-												TBUS_transmitBuffer[j*2+4] = settings[adr_of_registers + i] & 0x00FF; //значение регистра Hi		
+													for (uint16_t i=0, j=0; i < count_registers; i++, j++)
+													{
+														TBUS_transmitBuffer[j*2+3] = settings[adr_of_registers + i] >> 8; //значение регистра Lo 		
+														TBUS_transmitBuffer[j*2+4] = settings[adr_of_registers + i] & 0x00FF; //значение регистра Hi		
+													}
+											}
+											
+											if (adr_of_registers > 944)
+											{
+													for (uint16_t i=0, j=0; i < MIRROR_COUNT; i++, j++)
+													{
+														TBUS_transmitBuffer[j*2+3] = mirror_values[i] >> 8; //значение регистра Lo 		
+														TBUS_transmitBuffer[j*2+4] = mirror_values[i] & 0x00FF; //значение регистра Hi		
+													}
+											}
+											
+											if (adr_of_registers > 1080)
+											{
+													for (uint16_t i=0, j=0; i < MIRROR_COUNT; i++, j++)
+													{
+														TBUS_transmitBuffer[j*2+3] = 0; //значение регистра Lo 		
+														TBUS_transmitBuffer[j*2+4] = 0; //значение регистра Hi		
+													}
 											}
 									
 											crc = crc16(TBUS_transmitBuffer, count_registers*2+3);				

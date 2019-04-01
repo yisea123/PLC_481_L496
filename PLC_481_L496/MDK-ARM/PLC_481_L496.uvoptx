@@ -202,20 +202,15 @@
         <Ww>
           <count>0</count>
           <WinNumber>2</WinNumber>
-          <ItemText>mirror_values</ItemText>
+          <ItemText>master_array</ItemText>
         </Ww>
         <Ww>
           <count>1</count>
           <WinNumber>2</WinNumber>
-          <ItemText>master_array</ItemText>
+          <ItemText>\\PLC_481_L496\../Src/freertos.c\mirror_values,0x0A</ItemText>
         </Ww>
         <Ww>
           <count>2</count>
-          <WinNumber>2</WinNumber>
-          <ItemText>\\PLC_481_L496\../Src/freertos.c\mirror_values</ItemText>
-        </Ww>
-        <Ww>
-          <count>3</count>
           <WinNumber>2</WinNumber>
           <ItemText>adr_of_registers,0x0A</ItemText>
         </Ww>
