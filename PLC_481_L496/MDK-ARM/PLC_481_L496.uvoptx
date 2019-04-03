@@ -207,12 +207,17 @@
         <Ww>
           <count>1</count>
           <WinNumber>2</WinNumber>
-          <ItemText>\\PLC_481_L496\../Src/freertos.c\mirror_values,0x0A</ItemText>
+          <ItemText>ZSK_trigger_array_previous</ItemText>
         </Ww>
         <Ww>
           <count>2</count>
           <WinNumber>2</WinNumber>
-          <ItemText>adr_of_registers,0x0A</ItemText>
+          <ItemText>ZSK_trigger_array</ItemText>
+        </Ww>
+        <Ww>
+          <count>3</count>
+          <WinNumber>2</WinNumber>
+          <ItemText>trigger_485_ZSK_percent,0x0A</ItemText>
         </Ww>
       </WatchWindow2>
       <MemoryWindow1>

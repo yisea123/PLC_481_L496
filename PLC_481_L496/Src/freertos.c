@@ -4008,8 +4008,8 @@ void Modbus_Transmit_Task(void const * argument)
 											{
 												for (volatile uint16_t i=0, j=0; i < MIRROR_COUNT; i++, j++)
 												{
-													transmitBuffer[j*2+3] = mirror_values[i] >> 8; //значение регистра Lo 		
-													transmitBuffer[j*2+4] = mirror_values[i] & 0x00FF; //значение регистра Hi		
+													transmitBuffer[j*2+3] = mirror_values[(adr_of_registers - 999) +  i] >> 8; //значение регистра Lo 		
+													transmitBuffer[j*2+4] = mirror_values[(adr_of_registers - 999) +  i] & 0x00FF; //значение регистра Hi		
 												}												
 											}
 											
@@ -4874,13 +4874,55 @@ void TriggerLogic_Task(void const * argument)
 												if (master_array[i].master_value >= master_array[i].low_master_warning_set) 
 												{											
 													
-													if (i == 0 || i == 1 || i == 2) trigger_485_ZSK |= (1<<0);
+													if (i == 0 || i == 1 || i == 2) trigger_485_ZSK |= (1<<0);													
 													if (i == 3 || i == 4 || i == 5) trigger_485_ZSK |= (1<<1);											
 													if (i == 6 || i == 7 || i == 8) trigger_485_ZSK |= (1<<2);											
 													if (i == 9 || i == 10 || i == 11) trigger_485_ZSK |= (1<<3);
 													if (i == 12 || i == 13 || i == 14) trigger_485_ZSK |= (1<<4);														
 
-												}												
+												}
+												else if ( (master_array[i].master_value < master_array[i].low_master_warning_set) )
+												{
+													
+													if (master_array[0].master_value < master_array[0].low_master_warning_set &&
+															master_array[1].master_value < master_array[1].low_master_warning_set &&
+															master_array[2].master_value < master_array[2].low_master_warning_set)			
+													{													
+														trigger_485_ZSK &= ~(1<<0);
+													}
+													
+													if (master_array[3].master_value < master_array[3].low_master_warning_set &&
+															master_array[4].master_value < master_array[4].low_master_warning_set &&
+															master_array[5].master_value < master_array[5].low_master_warning_set)			
+													{													
+														trigger_485_ZSK &= ~(1<<1);
+													}													
+													
+													if (master_array[6].master_value < master_array[6].low_master_warning_set &&
+															master_array[7].master_value < master_array[7].low_master_warning_set &&
+															master_array[8].master_value < master_array[8].low_master_warning_set)			
+													{													
+														trigger_485_ZSK &= ~(1<<2);
+													}													
+													
+													
+													if (master_array[9].master_value < master_array[9].low_master_warning_set &&
+															master_array[10].master_value < master_array[10].low_master_warning_set &&
+															master_array[11].master_value < master_array[11].low_master_warning_set)			
+													{													
+														trigger_485_ZSK &= ~(1<<3);
+													}													
+													
+
+													if (master_array[12].master_value < master_array[12].low_master_warning_set &&
+															master_array[13].master_value < master_array[13].low_master_warning_set &&
+															master_array[14].master_value < master_array[14].low_master_warning_set)			
+													{													
+														trigger_485_ZSK &= ~(1<<4);
+													}													
+													
+												}
+														
 												
 												//ѕредупредительна€ уставка											
 												if (master_array[i].master_value >= master_array[i].master_warning_set) 
@@ -4901,11 +4943,48 @@ void TriggerLogic_Task(void const * argument)
 															xSemaphoreGive( Semaphore_Relay_1 );																
 														}
 												}	
-												else if (master_array[i].master_value < master_array[i].master_warning_set) 						
+												else if ( (master_array[i].master_value < master_array[i].master_warning_set) )			
 												{
 														master_delay_relay_array[i].timer_delay_relay_1 = 0;
 														master_delay_relay_array[i].relay_permission_1 = 0;	
-														master_delay_relay_array[i].flag_delay_relay_1 = 0;											
+														master_delay_relay_array[i].flag_delay_relay_1 = 0;								
+
+
+													if (master_array[0].master_value < master_array[0].master_warning_set &&
+															master_array[1].master_value < master_array[1].master_warning_set &&
+															master_array[2].master_value < master_array[2].master_warning_set)			
+													{													
+														trigger_485_ZSK &= ~(1<<5);
+													}
+													
+													if (master_array[3].master_value < master_array[3].master_warning_set &&
+															master_array[4].master_value < master_array[4].master_warning_set &&
+															master_array[5].master_value < master_array[5].master_warning_set)			
+													{													
+														trigger_485_ZSK &= ~(1<<6);
+													}
+													
+													if (master_array[6].master_value < master_array[6].master_warning_set &&
+															master_array[7].master_value < master_array[7].master_warning_set &&
+															master_array[8].master_value < master_array[8].master_warning_set)			
+													{													
+														trigger_485_ZSK &= ~(1<<7);
+													}													
+													
+													if (master_array[9].master_value < master_array[9].master_warning_set &&
+															master_array[10].master_value < master_array[10].master_warning_set &&
+															master_array[11].master_value < master_array[11].master_warning_set)			
+													{													
+														trigger_485_ZSK &= ~(1<<8);
+													}			
+
+													if (master_array[12].master_value < master_array[12].master_warning_set &&
+															master_array[13].master_value < master_array[13].master_warning_set &&
+															master_array[14].master_value < master_array[14].master_warning_set)			
+													{													
+														trigger_485_ZSK &= ~(1<<9);
+													}
+													
 												}
 										
 										
@@ -5046,10 +5125,18 @@ void TriggerLogic_Task(void const * argument)
 						{
 							if (i >= 0 && i < 5) 
 							{
+								
 								if ((ZSK_trigger_array_previous[i] == 0) && (ZSK_trigger_array[i] != 0)) 
-								{
-									trigger_485_ZSK_percent += 5;								
+								{								
+									trigger_485_ZSK_percent += 5;																										
 								}
+								
+								if (ZSK_trigger_array[i] < ZSK_trigger_array_previous[i]) 
+								{
+									trigger_485_ZSK_percent -= 5;																	
+									
+								}																
+								
 							}
 							
 							if (i >= 5 && i < 10) 
@@ -5060,6 +5147,13 @@ void TriggerLogic_Task(void const * argument)
 									
 									trigger_485_ZSK_percent += 5;								
 								}
+								
+								if (ZSK_trigger_array[i] < ZSK_trigger_array_previous[i]) 
+								{
+									trigger_485_ZSK_percent -= 50; //Ѕазис												
+									
+								}
+								
 							}
 							
 							if (i >= 10 && i < 26) 
@@ -5077,27 +5171,32 @@ void TriggerLogic_Task(void const * argument)
 									trigger_485_ZSK_percent = 100;
 								}
 							}							
-						}
+						}						
 						
-						if (trigger_485_ZSK_percent < 0)  trigger_485_ZSK_percent = 0;
-						else if (trigger_485_ZSK_percent > 100) trigger_485_ZSK_percent = 100;
 						
-						if ( (x_axis & y_axis) ||  (x_axis & z_axis) || (y_axis & z_axis) )	
+						if ( (x_axis & y_axis) || (x_axis & z_axis) || (y_axis & z_axis) )	
 						{
 							trigger_485_ZSK_percent = 100;
 						}
 						
+						//ќбработка значений при выходе за границу диапазона
+						if (trigger_485_ZSK_percent < 0)  trigger_485_ZSK_percent = 0;
+						else if (trigger_485_ZSK_percent > 100) trigger_485_ZSK_percent = 100;
 						
-						//≈сли было событие, сохран€ем регистр состо€ни€ на flash
+						
+						//≈сли было событие, сохран€ем регистр состо€ни€ на flash						
 						if (trigger_485_ZSK_percent_prev != trigger_485_ZSK_percent) 
 						{
 							write_reg_flash(104, trigger_485_ZSK, 1);
 							trigger_485_ZSK_percent_prev = trigger_485_ZSK_percent;
 						}
 						else trigger_485_ZSK_percent_prev = trigger_485_ZSK_percent;
-						
+							
 						//‘иксируем текущее состо€ние, дл€ того чтоб не было одновременных нескольких срабатываний при подъеме бита
 						memcpy(ZSK_trigger_array_previous, ZSK_trigger_array, sizeof(ZSK_trigger_array));
+					
+						
+						
 						
 						
 						//ќбрыв датчика
@@ -5515,8 +5614,8 @@ void TBUS_Modbus_Transmit_Task(void const * argument)
 											{
 													for (uint16_t i=0, j=0; i < MIRROR_COUNT; i++, j++)
 													{
-														TBUS_transmitBuffer[j*2+3] = mirror_values[i] >> 8; //значение регистра Lo 		
-														TBUS_transmitBuffer[j*2+4] = mirror_values[i] & 0x00FF; //значение регистра Hi		
+														TBUS_transmitBuffer[j*2+3] = mirror_values[(adr_of_registers - 999) +  i] >> 8; //значение регистра Lo 		
+														TBUS_transmitBuffer[j*2+4] = mirror_values[(adr_of_registers - 999) +  i] & 0x00FF; //значение регистра Hi		
 													}
 											}
 											
