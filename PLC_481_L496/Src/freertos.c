@@ -1473,7 +1473,7 @@ void Display_Task(void const * argument)
 	ssd1306_Fill(1);
 	check_logo();
 	ssd1306_UpdateScreen();
-	osDelay(settings[109]/2); //Заливка половина времени прогрева
+	osDelay( settings[109]/2); //Заливка половина времени прогрева
 	
 
 	init_menu(1);
@@ -4672,8 +4672,8 @@ void TriggerLogic_Task(void const * argument)
   /* USER CODE BEGIN TriggerLogic_Task */
 
 	
-	osDelay(warming_up);
-	warming_flag = 0;
+//	osDelay(warming_up);
+//	warming_flag = 0;
 	
 	
 	
@@ -4861,10 +4861,17 @@ void TriggerLogic_Task(void const * argument)
 				
 				if (channel_485_ON == 2) //Специальный режим работы для системы ЗСК
 				{
+						//Заморозка битов состояния, если была сработка 						
+						if( (state_emerg_relay == 0) && (trigger_485_ZSK_percent < 99) && (trigger_485_ZSK < 0xC00) )						
+						{
+							trigger_485_ZSK = 0;
+							trigger_485_ZSK_percent = 0;
+						}
 					
+						if (state_emerg_relay == 0)
 						for (uint8_t i = 0; i < ZSK_REG_485_QTY; i++)
 						{
-								if (master_array[i].master_on == 1)
+								if (master_array[i].master_on == 1) 
 								{			
 									
 										if ((i >= 0) && (i < 15)) //Регистры с вибропараметрами
@@ -4872,62 +4879,18 @@ void TriggerLogic_Task(void const * argument)
 											
 												//Нижняя предупредительная уставка
 												if (master_array[i].master_value >= master_array[i].low_master_warning_set) 
-												{											
-													
+												{													
 													if (i == 0 || i == 1 || i == 2) trigger_485_ZSK |= (1<<0);													
 													if (i == 3 || i == 4 || i == 5) trigger_485_ZSK |= (1<<1);											
 													if (i == 6 || i == 7 || i == 8) trigger_485_ZSK |= (1<<2);											
 													if (i == 9 || i == 10 || i == 11) trigger_485_ZSK |= (1<<3);
-													if (i == 12 || i == 13 || i == 14) trigger_485_ZSK |= (1<<4);														
-
-												}
-												else if ( (master_array[i].master_value < master_array[i].low_master_warning_set) )
-												{
-													
-													if (master_array[0].master_value < master_array[0].low_master_warning_set &&
-															master_array[1].master_value < master_array[1].low_master_warning_set &&
-															master_array[2].master_value < master_array[2].low_master_warning_set)			
-													{													
-														trigger_485_ZSK &= ~(1<<0);
-													}
-													
-													if (master_array[3].master_value < master_array[3].low_master_warning_set &&
-															master_array[4].master_value < master_array[4].low_master_warning_set &&
-															master_array[5].master_value < master_array[5].low_master_warning_set)			
-													{													
-														trigger_485_ZSK &= ~(1<<1);
-													}													
-													
-													if (master_array[6].master_value < master_array[6].low_master_warning_set &&
-															master_array[7].master_value < master_array[7].low_master_warning_set &&
-															master_array[8].master_value < master_array[8].low_master_warning_set)			
-													{													
-														trigger_485_ZSK &= ~(1<<2);
-													}													
-													
-													
-													if (master_array[9].master_value < master_array[9].low_master_warning_set &&
-															master_array[10].master_value < master_array[10].low_master_warning_set &&
-															master_array[11].master_value < master_array[11].low_master_warning_set)			
-													{													
-														trigger_485_ZSK &= ~(1<<3);
-													}													
-													
-
-													if (master_array[12].master_value < master_array[12].low_master_warning_set &&
-															master_array[13].master_value < master_array[13].low_master_warning_set &&
-															master_array[14].master_value < master_array[14].low_master_warning_set)			
-													{													
-														trigger_485_ZSK &= ~(1<<4);
-													}													
-													
+													if (i == 12 || i == 13 || i == 14) trigger_485_ZSK |= (1<<4);	
 												}
 														
 												
 												//Предупредительная уставка											
 												if (master_array[i].master_value >= master_array[i].master_warning_set) 
-												{
-													
+												{													
 														master_delay_relay_array[i].flag_delay_relay_1 = 1;
 														
 														if (master_delay_relay_array[i].relay_permission_1 == 1)
@@ -4942,51 +4905,7 @@ void TriggerLogic_Task(void const * argument)
 															flag_for_delay_relay_exit = 1;							
 															xSemaphoreGive( Semaphore_Relay_1 );																
 														}
-												}	
-												else if ( (master_array[i].master_value < master_array[i].master_warning_set) )			
-												{
-														master_delay_relay_array[i].timer_delay_relay_1 = 0;
-														master_delay_relay_array[i].relay_permission_1 = 0;	
-														master_delay_relay_array[i].flag_delay_relay_1 = 0;								
-
-
-													if (master_array[0].master_value < master_array[0].master_warning_set &&
-															master_array[1].master_value < master_array[1].master_warning_set &&
-															master_array[2].master_value < master_array[2].master_warning_set)			
-													{													
-														trigger_485_ZSK &= ~(1<<5);
-													}
-													
-													if (master_array[3].master_value < master_array[3].master_warning_set &&
-															master_array[4].master_value < master_array[4].master_warning_set &&
-															master_array[5].master_value < master_array[5].master_warning_set)			
-													{													
-														trigger_485_ZSK &= ~(1<<6);
-													}
-													
-													if (master_array[6].master_value < master_array[6].master_warning_set &&
-															master_array[7].master_value < master_array[7].master_warning_set &&
-															master_array[8].master_value < master_array[8].master_warning_set)			
-													{													
-														trigger_485_ZSK &= ~(1<<7);
-													}													
-													
-													if (master_array[9].master_value < master_array[9].master_warning_set &&
-															master_array[10].master_value < master_array[10].master_warning_set &&
-															master_array[11].master_value < master_array[11].master_warning_set)			
-													{													
-														trigger_485_ZSK &= ~(1<<8);
-													}			
-
-													if (master_array[12].master_value < master_array[12].master_warning_set &&
-															master_array[13].master_value < master_array[13].master_warning_set &&
-															master_array[14].master_value < master_array[14].master_warning_set)			
-													{													
-														trigger_485_ZSK &= ~(1<<9);
-													}
-													
-												}
-										
+												}											
 										
 										
 												//Аварийная уставка
@@ -5065,7 +4984,10 @@ void TriggerLogic_Task(void const * argument)
 														if (master_delay_relay_array[i].relay_permission_1 == 1)
 														{
 											
-															if (i == 15 || i == 16 || i == 17) trigger_485_ZSK |= (1<<25);																	
+															if (i == 15 || i == 16 || i == 17) 
+															{
+																trigger_485_ZSK |= (1<<25);																	
+															}
 															
 															state_warning_relay = 1;
 															flag_for_delay_relay_exit = 1;							
@@ -5129,14 +5051,7 @@ void TriggerLogic_Task(void const * argument)
 								if ((ZSK_trigger_array_previous[i] == 0) && (ZSK_trigger_array[i] != 0)) 
 								{								
 									trigger_485_ZSK_percent += 5;																										
-								}
-								
-								if (ZSK_trigger_array[i] < ZSK_trigger_array_previous[i]) 
-								{
-									trigger_485_ZSK_percent -= 5;																	
-									
-								}																
-								
+								}							
 							}
 							
 							if (i >= 5 && i < 10) 
@@ -5146,14 +5061,7 @@ void TriggerLogic_Task(void const * argument)
 									if (trigger_485_ZSK_percent < 50) trigger_485_ZSK_percent = 50; //Базис								
 									
 									trigger_485_ZSK_percent += 5;								
-								}
-								
-								if (ZSK_trigger_array[i] < ZSK_trigger_array_previous[i]) 
-								{
-									trigger_485_ZSK_percent -= 50; //Базис												
-									
-								}
-								
+								}								
 							}
 							
 							if (i >= 10 && i < 26) 
@@ -5169,6 +5077,7 @@ void TriggerLogic_Task(void const * argument)
 								if ((ZSK_trigger_array_previous[i] == 0) && (ZSK_trigger_array[i] != 0)) 
 								{
 									trigger_485_ZSK_percent = 100;
+									
 								}
 							}							
 						}						
@@ -5177,6 +5086,7 @@ void TriggerLogic_Task(void const * argument)
 						if ( (x_axis & y_axis) || (x_axis & z_axis) || (y_axis & z_axis) )	
 						{
 							trigger_485_ZSK_percent = 100;
+							
 						}
 						
 						//Обработка значений при выходе за границу диапазона
@@ -5185,7 +5095,7 @@ void TriggerLogic_Task(void const * argument)
 						
 						
 						//Если было событие, сохраняем регистр состояния на flash						
-						if (trigger_485_ZSK_percent_prev != trigger_485_ZSK_percent) 
+						if ( (trigger_485_ZSK_percent_prev != trigger_485_ZSK_percent) && (trigger_485_ZSK_percent >= 100) && (warming_flag == 0) )						
 						{
 							write_reg_flash(104, trigger_485_ZSK, 1);
 							trigger_485_ZSK_percent_prev = trigger_485_ZSK_percent;
@@ -5193,7 +5103,7 @@ void TriggerLogic_Task(void const * argument)
 						else trigger_485_ZSK_percent_prev = trigger_485_ZSK_percent;
 							
 						//Фиксируем текущее состояние, для того чтоб не было одновременных нескольких срабатываний при подъеме бита
-						memcpy(ZSK_trigger_array_previous, ZSK_trigger_array, sizeof(ZSK_trigger_array));
+						//memcpy(ZSK_trigger_array_previous, ZSK_trigger_array, sizeof(ZSK_trigger_array));
 					
 						
 						
@@ -5249,7 +5159,8 @@ void TriggerLogic_Task(void const * argument)
 			
 			trigger_event_attribute = 0;
 			trigger_485_event_attribute_warning = 0;
-			trigger_485_event_attribute_emerg = 0;
+			trigger_485_event_attribute_emerg = 0;			
+			
 			
 			settings[96] = 0;
 			
@@ -5269,6 +5180,8 @@ void TriggerLogic_Task(void const * argument)
 			z_axis = 0;			
 			settings[30] = 0;
 			settings[31] = 0;			
+			
+			write_reg_flash(104, trigger_485_ZSK, 1);
 			
 			//Чтоб пересчитывались проценты снова, при сбросе
 			for(int i = 0; i < ZSK_REG_485_QTY; i++) 
