@@ -4473,6 +4473,7 @@ void Data_Storage_Task(void const * argument)
 		for (uint16_t i = 0; i < REG_485_QTY; i++)
 		{			
 						
+				if (warming_flag == 0)
 				if (channel_485_ON == 2) //Специальный режим работы для системы ЗСК	
 				if(MOVING_AVERAGE == 1) //Расчитываем скользящее среднее и перезаписываем значение с учетом усреднения (ЗСК)		
 				if (i < 15) //Усредняем только вибропараметры
@@ -4873,6 +4874,7 @@ void TriggerLogic_Task(void const * argument)
 						{
 								if (master_array[i].master_on == 1) 
 								{			
+
 									
 										if ((i >= 0) && (i < 15)) //Регистры с вибропараметрами
 										{
@@ -4937,24 +4939,7 @@ void TriggerLogic_Task(void const * argument)
 															if (i == 14) trigger_485_ZSK |= (1<<24);																								
 
 															
-															//Проверка на срабатывание по осям	
-															x_axis = (((trigger_485_ZSK & (1<<10)) != 0) ||
-															((trigger_485_ZSK & (1<<13)) != 0) ||
-															((trigger_485_ZSK & (1<<16)) != 0) ||
-															((trigger_485_ZSK & (1<<19)) != 0) ||
-															((trigger_485_ZSK & (1<<22)) != 0));
-															
-															y_axis = (((trigger_485_ZSK & (1<<11)) != 0) ||
-															((trigger_485_ZSK & (1<<14)) != 0) ||
-															((trigger_485_ZSK & (1<<17)) != 0) ||
-															((trigger_485_ZSK & (1<<20)) != 0) ||
-															((trigger_485_ZSK & (1<<23)) != 0));
-															
-															z_axis = (((trigger_485_ZSK & (1<<12)) != 0) ||
-															((trigger_485_ZSK & (1<<15)) != 0) ||
-															((trigger_485_ZSK & (1<<18)) != 0) ||
-															((trigger_485_ZSK & (1<<21)) != 0) ||
-															((trigger_485_ZSK & (1<<24)) != 0));												
+											
 															
 
 															if ( (x_axis & y_axis) ||  (x_axis & z_axis) || (y_axis & z_axis) )												
@@ -5034,10 +5019,27 @@ void TriggerLogic_Task(void const * argument)
 								}
 						}							
 						
+						//Проверка на срабатывание по осям	
+						x_axis = (((trigger_485_ZSK & (1<<10)) != 0) ||
+						((trigger_485_ZSK & (1<<13)) != 0) ||
+						((trigger_485_ZSK & (1<<16)) != 0) ||
+						((trigger_485_ZSK & (1<<19)) != 0) ||
+						((trigger_485_ZSK & (1<<22)) != 0));
+						
+						y_axis = (((trigger_485_ZSK & (1<<11)) != 0) ||
+						((trigger_485_ZSK & (1<<14)) != 0) ||
+						((trigger_485_ZSK & (1<<17)) != 0) ||
+						((trigger_485_ZSK & (1<<20)) != 0) ||
+						((trigger_485_ZSK & (1<<23)) != 0));
+						
+						z_axis = (((trigger_485_ZSK & (1<<12)) != 0) ||
+						((trigger_485_ZSK & (1<<15)) != 0) ||
+						((trigger_485_ZSK & (1<<18)) != 0) ||
+						((trigger_485_ZSK & (1<<21)) != 0) ||
+						((trigger_485_ZSK & (1<<24)) != 0));							
 						
 						
-						//Обработка регистра состояния оборудования (расчет процента, биты -> проценты)						
-
+						//Обработка регистра состояния оборудования (расчет процента, биты -> проценты)
 						for (int i = 0; i < ZSK_REG_485_QTY; i++) //Раскидываем биты по массиву
 						{
 							ZSK_trigger_array[i] = trigger_485_ZSK & (1<<i);
@@ -5046,8 +5048,7 @@ void TriggerLogic_Task(void const * argument)
 						for(int i = 0; i < ZSK_REG_485_QTY; i++) 
 						{
 							if (i >= 0 && i < 5) 
-							{
-								
+							{								
 								if ((ZSK_trigger_array_previous[i] == 0) && (ZSK_trigger_array[i] != 0)) 
 								{								
 									trigger_485_ZSK_percent += 5;																										
@@ -5068,7 +5069,7 @@ void TriggerLogic_Task(void const * argument)
 							{
 								if ((ZSK_trigger_array_previous[i] == 0) && (ZSK_trigger_array[i] != 0)) 
 								{
-									trigger_485_ZSK_percent = 90;								
+									if (trigger_485_ZSK_percent < 90) trigger_485_ZSK_percent = 90;								
 								}
 							}							
 							
@@ -5083,10 +5084,9 @@ void TriggerLogic_Task(void const * argument)
 						}						
 						
 						
-						if ( (x_axis & y_axis) || (x_axis & z_axis) || (y_axis & z_axis) )	
+						if ( (x_axis && y_axis) || (x_axis && z_axis) || (y_axis && z_axis) )	
 						{
-							trigger_485_ZSK_percent = 100;
-							
+							trigger_485_ZSK_percent = 100;							
 						}
 						
 						//Обработка значений при выходе за границу диапазона
